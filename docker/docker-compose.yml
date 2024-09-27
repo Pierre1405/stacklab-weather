@@ -1,0 +1,34 @@
+---
+version: '2'
+services:
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_stacklabs:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=S3cret
+      - POSTGRES_USER=stacklabs
+      - POSTGRES_DB=stacklabs
+
+  mongodb:
+    image: mongo:6-jammy
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_stacklabs:/data/db
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    privileged: true
+    user: root
+    ports:
+      - 8081:8080
+      - 50000:50000
+    container_name: jenkins
+    volumes:
+        - "./jenkins:/var/jenkins_home"
+volumes:
+  postgres_stacklabs:
+  mongodb_stacklabs:
