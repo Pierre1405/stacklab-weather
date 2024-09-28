@@ -6,7 +6,7 @@
 - [x] gradle gitflow
 - [x] jenkins pipeline
 - [ ] github pipeline
-- [ ] stacklabsDto with swagger
+- [X] stacklabsDto with swagger
 - [ ] weatherbit swagger to dto
 - [ ] mapstruct weatherbit to stacklabs
 - [ ] Rest client
