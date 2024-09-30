@@ -1,5 +1,5 @@
 plugins {
-	kotlin("jvm") version "1.9.25"
+	kotlin("jvm")
 	kotlin("plugin.spring") version "1.9.25"
 	id("org.springframework.boot") version "3.3.4"
 	id("io.spring.dependency-management") version "1.1.6"
@@ -26,6 +26,7 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 
 	implementation(project(":dto"))
+	implementation(project(":weatherbit-client"))
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
