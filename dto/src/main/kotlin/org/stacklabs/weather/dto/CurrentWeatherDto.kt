@@ -15,5 +15,5 @@ data class CurrentWeatherDto(
     val windSpeed: Float,
     @PositiveOrZero
     @Schema(description = "Humidity in %")
-    val humidity: Float
+    val humidity: Int
 )

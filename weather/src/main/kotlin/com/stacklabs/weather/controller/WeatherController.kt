@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.stacklabs.weather.dto.CurrentWeatherDto
-import org.stacklabs.weather.dto.ForecastDto
+import org.stacklabs.weather.dto.WeatherForecastDto
 import org.stacklabs.weather.dto.Tendency
 
 
@@ -25,7 +25,7 @@ class WeatherController {
             description = "Sunny",
             temperature = 10.0f,
             windSpeed = 0.0f,
-            humidity = 0.0f
+            humidity = 0
         )
     }
 
@@ -34,8 +34,8 @@ class WeatherController {
         ApiResponse(responseCode = "200", description = "Weather forecast")
     )
     @GetMapping(path = ["/forecast"])
-    fun forecast(): ForecastDto {
-        return ForecastDto(
+    fun forecast(): WeatherForecastDto {
+        return WeatherForecastDto(
             globalTendency = Tendency.CONSTANT,
             temperatureTendency = Tendency.CONSTANT,
             pressureTendency = Tendency.CONSTANT,

@@ -1,0 +1,53 @@
+{
+    "count": 1,
+    "data": [
+        {
+            "app_temp": 25.9,
+            "aqi": 41,
+            "city_name": "Tokyo",
+            "clouds": 0,
+            "country_code": "JP",
+            "datetime": "2024-10-01:15",
+            "dewpt": 22.9,
+            "dhi": 0,
+            "dni": 0,
+            "elev_angle": -51.79,
+            "ghi": 0,
+            "gust": null,
+            "h_angle": -90,
+            "lat": 35.6895,
+            "lon": 139.69171,
+            "ob_time": "2024-10-01 15:30",
+            "pod": "n",
+            "precip": 0,
+            "pres": 1006.4,
+            "rh": 88,
+            "slp": 1007,
+            "snow": 0,
+            "solar_rad": 0,
+            "sources": [
+                "RJTT",
+                "radar",
+                "satellite"
+            ],
+            "state_code": "40",
+            "station": "RJTT",
+            "sunrise": "20:36",
+            "sunset": "08:23",
+            "temp": 25,
+            "timezone": "Asia/Tokyo",
+            "ts": 1727796613,
+            "uv": 0,
+            "vis": 16,
+            "weather": {
+                "icon": "c01n",
+                "description": "Clear sky",
+                "code": 800
+            },
+            "wind_cdir": "S",
+            "wind_cdir_full": "south",
+            "wind_dir": 180,
+            "wind_spd": 7.2
+        }
+    ]
+}
