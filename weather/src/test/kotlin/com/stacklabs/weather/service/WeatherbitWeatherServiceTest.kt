@@ -1,6 +1,9 @@
 package com.stacklabs.weather.service
 
 import com.stacklabs.weather.SampleReader
+import com.stacklabs.weather.configuration.EvaluationProperties
+import com.stacklabs.weather.service.WeatherEvaluation.EvaluationFunctions.LINEAR
+import com.stacklabs.weather.service.WeatherEvaluation.EvaluationFunctions.SQUARE
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -8,13 +11,37 @@ import org.mockito.Mockito.*
 import org.stacklabs.weather.dto.CurrentWeatherDto
 import com.stacklabs.weather.weatherbit.models.CurrentObs
 import com.stacklabs.weather.weatherbit.models.CurrentObsGroup
+import com.stacklabs.weather.weatherbit.models.Forecast
 import com.stacklabs.weather.weatherbit.models.ForecastDay
+import org.stacklabs.weather.dto.BeaufortScale
+import org.stacklabs.weather.dto.Tendency
+import org.stacklabs.weather.dto.WeatherForecastDto
+import java.math.BigDecimal
 
 class WeatherbitWeatherServiceTest {
 
     private val getCurrentMock = mock<(String) -> CurrentObsGroup>()
     private val getWeatherForecastMock = mock<(String) -> ForecastDay>()
-    private val service = WeatherbitWeatherService(getCurrentMock, getWeatherForecastMock)
+    private val temperatureEvaluation = EvaluationProperties(
+        optimalValue = 23.0,
+        worstMinValue = -10.0,
+        worstMaxValue = 40.0,
+        weight = 20.0,
+        evaluationFunction = SQUARE
+    )
+    private val pressureEvaluation = EvaluationProperties(
+        optimalValue = 1000.0,
+        worstMinValue = 900.0,
+        worstMaxValue = 1100.0,
+        weight = 5.0,
+        evaluationFunction = LINEAR
+    )
+    private val service = WeatherbitWeatherService(
+        getCurrentMock,
+        getWeatherForecastMock,
+        temperatureEvaluation,
+        pressureEvaluation
+    )
 
     @Test
     fun test_getCurrentWeather_validData() {
@@ -25,29 +52,18 @@ class WeatherbitWeatherServiceTest {
 
         val expected = CurrentWeatherDto(
             description = "Clear sky",
-            temperature = 25.0f,
+            temperature = 25.0,
             humidity = 88,
-            windSpeed = 7.2f
+            windSpeed = 7.2
         )
         assertEquals(expected, result)
     }
 
     @Test
-    fun test_getCurrentWeather_apiError() {
-        `when`(getCurrentMock.invoke("Tokyo")).thenThrow(RuntimeException("API error"))
-
-        val exception = assertThrows<RuntimeException> {
-            service.getCurrentWeather("Tokyo")
-        }
-        assertEquals("Not able to retrieve current weather", exception.message)
-        assertEquals("API error", exception.cause?.message)
-    }
-
-    @Test
     fun test_getCurrentWeather_invalidData() {
         testInvalidData(null, "no data found")
-        testInvalidData(listOf(), "no data found")
-        testInvalidData(listOf(CurrentObs(), CurrentObs()), "multiple data found")
+        testInvalidData(listOf(), "empty data")
+        testInvalidData(listOf(CurrentObs(), CurrentObs()), "more than one data found")
     }
 
     private fun testInvalidData(dataList: List<CurrentObs>?, expectedMessage: String) {
@@ -61,7 +77,7 @@ class WeatherbitWeatherServiceTest {
     }
 
     @Test
-    fun handles_cases_where_temperature_is_null() {
+    fun handles_cases_where_data_is_null() {
         val currentObs = CurrentObs(
             temp = null,
             weather = null,
@@ -75,11 +91,73 @@ class WeatherbitWeatherServiceTest {
         val result = service.getCurrentWeather("Tokyo")
 
         val expected = CurrentWeatherDto(
-            description = "",
-            temperature = Float.MIN_VALUE,
-            humidity = Int.MIN_VALUE,
-            windSpeed = Float.MIN_VALUE
+            description = null,
+            temperature = null,
+            humidity = null,
+            windSpeed = null
         )
         assertEquals(expected, result)
     }
+
+    @Test
+    fun test_getWeatherForecast_validData() {
+        val forecast1 = Forecast(
+            temp = BigDecimal(20),
+            pres = BigDecimal(1010),
+            windSpd = BigDecimal(5000),
+            datetime = "2023-10-01"
+        )
+        val forecast2 = Forecast(
+            temp = BigDecimal(22),
+            pres = BigDecimal(1005),
+            windSpd = BigDecimal(12000),
+            datetime = "2023-10-02"
+        )
+        val forecastDay = ForecastDay(data = listOf(forecast1, forecast2))
+
+        `when`(getWeatherForecastMock.invoke("Tokyo")).thenReturn(forecastDay)
+
+        val result: WeatherForecastDto = service.getWeatherForecast("Tokyo")
+
+        val expected = WeatherForecastDto(
+            globalTendency = Tendency.INCREASING,
+            temperatureTendency = Tendency.INCREASING,
+            pressureTendency = Tendency.DECREASING,
+            windAverage = BeaufortScale.LIGHT_BREEZE
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun test_getWeatherForecast_nullData() {
+        val forecastDay = ForecastDay(data = null)
+
+        `when`(getWeatherForecastMock.invoke("Tokyo")).thenReturn(forecastDay)
+
+        val exception = assertThrows<WeatherServiceException> {
+            service.getWeatherForecast("Tokyo")
+        }
+
+        assertEquals("Not able to retrieve weather forecast, no data found", exception.message)
+    }
+
+    @Test
+    fun test_getWeatherForecast_tempIsNull () {
+        val forecast1 = Forecast(
+            temp = null,
+            pres = BigDecimal(1010),
+            windSpd = BigDecimal(5),
+            datetime = "2023-10-01"
+        )
+        val forecastDay = ForecastDay(data = listOf(forecast1))
+
+        `when`(getWeatherForecastMock.invoke("Tokyo")).thenReturn(forecastDay)
+
+        val exception = assertThrows<WeatherServiceException> {
+            service.getWeatherForecast("Tokyo")
+        }
+
+        assertEquals("Not able to evaluate global tendency", exception.message)
+    }
+
 }

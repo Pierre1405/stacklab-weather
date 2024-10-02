@@ -8,17 +8,16 @@
 - [ ] github pipeline
 - [X] stacklabsDto with swagger
 - [X] weatherbit swagger to dto
-- [ ] omit not necessary api in weatherbit client
-- [ ] don't use BigDecimal in weatherbit client
 - [ ] add abstraction for weatherbit api client?
 - [X] ~~mapstruct weatherbit to stacklabs~~ (kapt not working with java 21)
-- [ ] Rest client
-- [ ] weather service
+- [ ] Inject configuration
+- [X] weather service
 - [X] get current weather in service
-- [ ] get forecast in service
+- [X] get forecast in service
+- [ ] create a service for weather evaluation
 - [ ] rest route api
-- [ ] http error management 
 - [ ] http integration test
+- [ ] http error management 
 - [ ] validate city by code
 - [ ] dockerized
 - [ ] terraform?

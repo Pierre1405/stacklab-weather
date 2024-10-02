@@ -10,5 +10,5 @@ data class WeatherForecastDto(
     val pressureTendency: Tendency,
     @PositiveOrZero
     @Schema(description = "Wind average in beaufort scale")
-    val windAverage: Int
+    val windAverage: BeaufortScale
 )

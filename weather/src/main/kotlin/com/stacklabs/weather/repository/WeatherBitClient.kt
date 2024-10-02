@@ -1,4 +1,4 @@
-package com.stacklabs.weather.service
+package com.stacklabs.weather.repository
 
 import com.stacklabs.weather.weatherbit.apis.Class16DayDailyForecastApi
 import com.stacklabs.weather.weatherbit.apis.CurrentWeatherDataApi

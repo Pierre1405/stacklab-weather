@@ -1,6 +1,6 @@
 package com.stacklabs.weather.configuration
 
-import com.stacklabs.weather.service.WeatherBitClient
+import com.stacklabs.weather.repository.WeatherBitClient
 import com.stacklabs.weather.weatherbit.models.CurrentObsGroup
 import com.stacklabs.weather.weatherbit.models.ForecastDay
 import org.springframework.context.annotation.Bean
@@ -12,7 +12,8 @@ import org.springframework.web.client.RestClient
 class AppConfiguration {
 
     @Bean
-    fun weatherBitRestClient(weatherBitProperties: WeatherBitProperties): RestClient = RestClient.create()
+    fun weatherBitRestClient(weatherBitProperties: WeatherBitProperties): RestClient =
+        RestClient.create(weatherBitProperties.baseUrl)
 
     @Bean
     fun getCurrentWeather(
@@ -32,5 +33,12 @@ class AppConfiguration {
         restClient = restClient
     )
 
+    @Bean
+    fun temperatureEvaluation(weatherEvaluationConfiguration: WeatherEvaluationConfiguration) =
+        weatherEvaluationConfiguration.temperature
+
+    @Bean
+    fun pressureEvaluation(weatherEvaluationConfiguration: WeatherEvaluationConfiguration) =
+        weatherEvaluationConfiguration.pressure
 
 }
