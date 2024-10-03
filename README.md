@@ -5,21 +5,21 @@
 - [X] gradle release
 - [X] gradle gitflow
 - [X] jenkins pipeline
-- [/] github pipeline
+- [X] github pipeline
 - [X] stacklabsDto with swagger
 - [X] weatherbit swagger to dto
-- [ ] add abstraction for weatherbit api client?
 - [X] ~~mapstruct weatherbit to stacklabs~~ (kapt not working with java 21)
-- [ ] Inject configuration
+- [X] Inject configuration
 - [X] weather service
 - [X] get current weather in service
 - [X] get forecast in service
-- [ ] rest route api
-- [ ] create a service for weather evaluation
+- [X] dockerized
+- [X] rest route api
 - [ ] mocked http integration test
 - [ ] http error management 
-- [ ] validate city by code
-- [X] dockerized
+- [ ] create a service for weather evaluation
+- [ ] add abstraction for weatherbit api client?
+- [ ] github pipeline publish docker image?
 - [ ] terraform?
 
 # Startup
