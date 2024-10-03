@@ -5,7 +5,7 @@
 - [X] gradle release
 - [X] gradle gitflow
 - [X] jenkins pipeline
-- [ ] github pipeline
+- [/] github pipeline
 - [X] stacklabsDto with swagger
 - [X] weatherbit swagger to dto
 - [ ] add abstraction for weatherbit api client?
