@@ -104,13 +104,13 @@ class WeatherbitWeatherServiceTest {
         val forecast1 = Forecast(
             temp = BigDecimal(20),
             pres = BigDecimal(1010),
-            windSpd = BigDecimal(5000),
+            windSpd = BigDecimal(1.38), // 5km/h
             datetime = "2023-10-01"
         )
         val forecast2 = Forecast(
             temp = BigDecimal(22),
             pres = BigDecimal(1005),
-            windSpd = BigDecimal(12000),
+            windSpd = BigDecimal(3.3), // 12km/h
             datetime = "2023-10-02"
         )
         val forecastDay = ForecastDay(data = listOf(forecast1, forecast2))

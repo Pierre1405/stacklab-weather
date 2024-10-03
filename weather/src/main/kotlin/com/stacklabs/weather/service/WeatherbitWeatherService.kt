@@ -87,7 +87,7 @@ class WeatherbitWeatherService @Autowired constructor(
                     ?: throw WeatherServiceException("Not able to evaluate pressure tendency, reference pressure is missing"),
                 otherDayAverage.pressure
             ),
-            windAverage = BeaufortScale.fromMeterPerSeconds(otherDayAverage.windSpeed)
+            windAverage = BeaufortScale.getFromMeterPerSeconds(otherDayAverage.windSpeed)
         )
     }
 
