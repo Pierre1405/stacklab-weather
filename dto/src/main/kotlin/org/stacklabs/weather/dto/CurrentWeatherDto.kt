@@ -7,13 +7,13 @@ import jakarta.validation.constraints.PositiveOrZero
 @Schema(description = "Current weather")
 data class CurrentWeatherDto(
     @NotBlank
-    val description: String,
+    val description: String?,
     @Schema(description = "Temperature in °C")
-    val temperature: Float,
+    val temperature: Double?,
     @PositiveOrZero
     @Schema(description = "Wind speed in km/h")
-    val windSpeed: Float,
+    val windSpeed: Double?,
     @PositiveOrZero
     @Schema(description = "Humidity in %")
-    val humidity: Float
+    val humidity: Int?
 )

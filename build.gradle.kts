@@ -4,6 +4,7 @@ import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 plugins {
     kotlin("jvm") version "1.9.25" apply false
     id("net.researchgate.release") version "3.0.2"
+    id("org.hidetake.swagger.generator") version "2.19.2"
 }
 
 buildscript {
@@ -24,7 +25,7 @@ tasks.named(name = "initJGitflow", type = InitJGitflowTask::class) {
 
 apply(plugin = "org.openapi.generator")
 tasks.named(name = "openApiGenerate", GenerateTask::class) {
-    remoteInputSpec = "https://www.weatherbit.io/static/swagger.json"
+    inputSpec = "$rootDir/swagger/weatherbit/swagger.json"
     outputDir = "$rootDir/weatherbit-client"
     generatorName = "kotlin"
     library = "jvm-spring-restclient"
@@ -38,6 +39,13 @@ tasks.named(name = "openApiGenerate", GenerateTask::class) {
     generateApiTests = false
     generateApiDocumentation = false
     cleanupOutput = true
+
+    /*
+    globalProperties = mapOf(
+        "apis" to "CurrentWeatherData,Class16DayDailyForecast",
+        "models" to "Forecast,ForecastDay"
+    )
+    */
     additionalProperties = mapOf(
         "omitGradlePluginVersions" to true,
         "useSpringBoot3" to true,
