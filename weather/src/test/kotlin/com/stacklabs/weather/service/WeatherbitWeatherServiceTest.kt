@@ -45,7 +45,7 @@ class WeatherbitWeatherServiceTest {
 
     @Test
     fun test_getCurrentWeather_validData() {
-        val currentObsGroup = SampleReader().readSample<CurrentObsGroup>("api-samples/current-tokyo.json")
+        val currentObsGroup = SampleReader().readSampleAs<CurrentObsGroup>("api-samples/current-tokyo.json")
         `when`(getCurrentMock.invoke("Tokyo")).thenReturn(currentObsGroup)
 
         val result: CurrentWeatherDto = service.getCurrentWeather("Tokyo")
