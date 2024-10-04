@@ -28,6 +28,8 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.mock-server:mockserver-netty:5.13.0")
+    testImplementation("org.mock-server:mockserver-client-java:5.13.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
