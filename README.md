@@ -15,7 +15,7 @@
 - [X] get forecast in service
 - [X] dockerized
 - [X] rest route api
-- [ ] mocked http integration test
+- [X] mocked http integration test
 - [ ] http error management 
 - [ ] create a service for weather evaluation
 - [ ] add abstraction for weatherbit api client?
