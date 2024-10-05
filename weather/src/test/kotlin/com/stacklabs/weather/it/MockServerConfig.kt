@@ -1,6 +1,7 @@
 package com.stacklabs.weather.it
 
 import com.stacklabs.weather.SampleReader
+import com.stacklabs.weather.configuration.WeatherBitProperties
 import org.mockserver.client.MockServerClient
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.Times
@@ -8,11 +9,14 @@ import org.mockserver.model.ClearType
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.MediaType
+import org.mockserver.model.Parameter
 import org.mockserver.verify.VerificationTimes
 import org.slf4j.LoggerFactory
 import java.net.URI
+import java.util.*
 
-class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
+class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
+    val mockServerUri = URI.create(weatherBitProperties.baseUrl)
     private var clientAndServer: ClientAndServer = ClientAndServer.startClientAndServer(mockServerUri.port)
     private var mockServerClient: MockServerClient = MockServerClient(mockServerUri.host, mockServerUri.port)
     private val logger = LoggerFactory.getLogger(MockServerConfig::class.java)
@@ -20,7 +24,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
     fun registerCurrentSuccess(city: String) {
         registerRequest(
             "/current",
-            city,
+            listOf(Parameter("city", city)),
             HttpResponse.response()
                 .withStatusCode(200)
                 .withContentType(MediaType.APPLICATION_JSON)
@@ -32,7 +36,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
     fun registerCurrentKeyFailure(city: String) {
         registerRequest(
             "/current",
-            city,
+            listOf(Parameter("city", city)),
             HttpResponse.response()
                 .withStatusCode(403)
                 .withContentType(MediaType.APPLICATION_JSON)
@@ -43,7 +47,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
     fun registerCurrentCityFailure(city: String) {
         registerRequest(
             "/current",
-            city,
+            listOf(Parameter("city", city)),
             HttpResponse.response()
                 .withStatusCode(400)
                 .withContentType(MediaType.APPLICATION_JSON)
@@ -57,7 +61,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
                 request()
                     .withMethod("GET")
                     .withPath("/current")
-                    .withQueryStringParameter("key", apiKey)
+                    .withQueryStringParameter("key", weatherBitProperties.apiKey)
                     .withQueryStringParameter("city", city),
                 VerificationTimes.exactly(1)
             )
@@ -66,7 +70,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
     fun registerForecastSuccess(city: String) {
         registerRequest(
             "/forecast/daily",
-            city,
+            listOf(Parameter("city", city), Parameter("days", weatherBitProperties.forecastNbDays.toString())),
             HttpResponse.response()
                 .withStatusCode(200)
                 .withContentType(MediaType.APPLICATION_JSON)
@@ -77,7 +81,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
     fun registerForecastKeyFailure(city: String) {
         registerRequest(
             "/forecast/daily",
-            city,
+            listOf(Parameter("city", city), Parameter("days", weatherBitProperties.forecastNbDays.toString())),
             HttpResponse.response()
                 .withStatusCode(403)
                 .withContentType(MediaType.APPLICATION_JSON)
@@ -88,7 +92,7 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
     fun registerForecastCityFailure(city: String) {
         registerRequest(
             "/forecast/daily",
-            city,
+            listOf(Parameter("city", city), Parameter("days", weatherBitProperties.forecastNbDays.toString())),
             HttpResponse.response()
                 .withStatusCode(204)
         )
@@ -100,8 +104,9 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
                 request()
                     .withMethod("GET")
                     .withPath("/forecast/daily")
-                    .withQueryStringParameter("key", apiKey)
-                    .withQueryStringParameter("city", city),
+                    .withQueryStringParameter("key", weatherBitProperties.apiKey)
+                    .withQueryStringParameter("city", city)
+                    .withQueryStringParameter("days", weatherBitProperties.forecastNbDays.toString()),
                 VerificationTimes.exactly(1)
             )
 
@@ -111,14 +116,14 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
         mockServerClient.clear(request(), ClearType.ALL)
     }
 
-    private fun registerRequest(path: String, city: String, response: HttpResponse) {
+    private fun registerRequest(path: String, queryParameters: List<Parameter>, response: HttpResponse) {
         clientAndServer
             .`when`(
                 request()
                     .withMethod("GET")
                     .withPath(path)
-                    .withQueryStringParameter("key", apiKey)
-                    .withQueryStringParameter("city", city),
+                    .withQueryStringParameter("key", weatherBitProperties.apiKey)
+                    .withQueryStringParameters(queryParameters),
                 Times.exactly(1)
             ).respond(
                 response
@@ -130,5 +135,32 @@ class MockServerConfig(mockServerUri: URI, private val apiKey: String) {
         logger.info("Stop mocked server")
         clientAndServer.stop()
         mockServerClient.stop()
+    }
+
+    companion object {
+        private var serverConfig: MockServerConfig? = null
+        private val weatherBitProperties: WeatherBitProperties
+
+        const val PROFILE_NAME = "mockserver"
+
+        init {
+            val properties = Properties()
+            properties.load(MockServerTest.Companion::class.java.classLoader.getResourceAsStream("application-$PROFILE_NAME.properties"))
+            weatherBitProperties = WeatherBitProperties(
+                apiKey = properties.get("external.weatherbit.api-key") as String,
+                baseUrl = properties.get("external.weatherbit.base-url") as String,
+                forecastNbDays = (properties.get("external.weatherbit.forecast-nb-days") as String).toInt()
+            )
+        }
+
+        fun startServer() {
+            serverConfig = MockServerConfig(weatherBitProperties)
+        }
+
+        fun stopServer() {
+            getServerConfig().stopServer()
+        }
+
+        fun getServerConfig(): MockServerConfig = serverConfig ?: throw IllegalStateException("Server not started")
     }
 }

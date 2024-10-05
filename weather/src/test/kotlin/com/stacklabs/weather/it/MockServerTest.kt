@@ -1,7 +1,9 @@
 package com.stacklabs.weather.it
 
 import com.stacklabs.weather.WeatherApplication
-import com.stacklabs.weather.configuration.WeatherBitProperties
+import com.stacklabs.weather.it.MockServerConfig.Companion.getServerConfig
+import com.stacklabs.weather.it.MockServerConfig.Companion.startServer
+import com.stacklabs.weather.it.MockServerConfig.Companion.stopServer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -18,15 +20,12 @@ import org.stacklabs.weather.dto.BeaufortScale
 import org.stacklabs.weather.dto.CurrentWeatherDto
 import org.stacklabs.weather.dto.Tendency
 import org.stacklabs.weather.dto.WeatherForecastDto
-import java.net.URI
-import java.util.Properties
 
 private const val CURRENT = "/current?city=%s"
 private const val FORECAST = "/forecast?city=%s"
-private const val PROFILE = "mockserver"
 
 @SpringBootTest(classes = [WeatherApplication::class], webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@ActiveProfiles(PROFILE)
+@ActiveProfiles(MockServerConfig.PROFILE_NAME)
 class MockServerTest(
     @Value("\${server.port}")
     val serverPort: Int,
@@ -151,33 +150,18 @@ class MockServerTest(
     }
 
     companion object {
-        private var serverConfig: MockServerConfig? = null
-        private val weatherBitProperties: WeatherBitProperties
 
-        init {
-            val properties = Properties()
-            properties.load(Companion::class.java.classLoader.getResourceAsStream("application-$PROFILE.properties"))
-            weatherBitProperties = WeatherBitProperties(
-                apiKey = properties.get("external.weatherbit.api-key") as String,
-                baseUrl = properties.get("external.weatherbit.base-url") as String
-            )
-        }
 
         @JvmStatic
         @BeforeAll
         fun setUp() {
-            serverConfig = MockServerConfig(
-                URI(weatherBitProperties.baseUrl),
-                weatherBitProperties.apiKey
-            )
+            startServer()
         }
 
         @JvmStatic
         @AfterAll
         fun tearDown() {
-            getServerConfig().stopServer()
+            stopServer()
         }
-
-        fun getServerConfig() = serverConfig ?: throw IllegalStateException("Server not started")
     }
 }
