@@ -2,7 +2,7 @@ package com.stacklabs.weather.controller
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.stacklabs.weather.service.WeatherService
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
@@ -39,7 +39,7 @@ class WeatherControllerTest {
             .andReturn()
 
         val actualDto = objectMapper.readValue(result.response.contentAsString, CurrentWeatherDto::class.java)
-        Assertions.assertEquals(expectedDto, actualDto)
+        assertEquals(expectedDto, actualDto)
     }
 
     @Test
@@ -55,7 +55,7 @@ class WeatherControllerTest {
             .andReturn()
 
         val actualDto = objectMapper.readValue(result.response.contentAsString, WeatherForecastDto::class.java)
-        Assertions.assertEquals(expectedDto, actualDto)
+        assertEquals(expectedDto, actualDto)
     }
 
     @Test

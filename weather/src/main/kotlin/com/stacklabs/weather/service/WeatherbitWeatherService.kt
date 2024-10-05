@@ -1,10 +1,9 @@
 package com.stacklabs.weather.service
 
 import com.stacklabs.weather.configuration.EvaluationProperties
+import com.stacklabs.weather.repository.WeatherBitRepository
 import com.stacklabs.weather.service.WeatherEvaluation.evaluate
-import com.stacklabs.weather.weatherbit.models.CurrentObsGroup
 import com.stacklabs.weather.weatherbit.models.Forecast
-import com.stacklabs.weather.weatherbit.models.ForecastDay
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.stacklabs.weather.dto.BeaufortScale
@@ -15,14 +14,13 @@ import java.time.LocalDate
 
 @Service
 class WeatherbitWeatherService @Autowired constructor(
-    private val getWeatherbitCurrentWeather: (String) -> CurrentObsGroup,
-    private val getWeatherbitWeatherForecast: (String) -> ForecastDay,
+    private val repository: WeatherBitRepository,
     private val temperatureEvaluation: EvaluationProperties,
     private val pressureEvaluation: EvaluationProperties
 ) : WeatherService {
 
     override fun getCurrentWeather(city: String): CurrentWeatherDto {
-        val currentWeather = getWeatherbitCurrentWeather(city)
+        val currentWeather = repository.getCurrentWeatherByCity(city)
         val currentObs = currentWeather.data?.let {
             when (it.size) {
                 0 -> throw RuntimeException("Not able to retrieve current weather, empty data")
@@ -55,7 +53,7 @@ class WeatherbitWeatherService @Autowired constructor(
     }
 
     override fun getWeatherForecast(city: String): WeatherForecastDto {
-        val weatherForecast = getWeatherbitWeatherForecast(city)
+        val weatherForecast = repository.getWeatherForecastByCity(city)
         val weatherForecastData = weatherForecast.data
             ?: throw WeatherServiceException("Not able to retrieve weather forecast, no data found")
 

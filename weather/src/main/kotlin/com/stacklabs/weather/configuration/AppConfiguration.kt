@@ -1,8 +1,6 @@
 package com.stacklabs.weather.configuration
 
-import com.stacklabs.weather.repository.WeatherBitClient
-import com.stacklabs.weather.weatherbit.models.CurrentObsGroup
-import com.stacklabs.weather.weatherbit.models.ForecastDay
+import com.stacklabs.weather.repository.WeatherBitRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestClient
@@ -16,21 +14,13 @@ class AppConfiguration {
         RestClient.create(weatherBitProperties.baseUrl)
 
     @Bean
-    fun getCurrentWeather(
+    fun getWeatherBitClient(
         weatherBitProperties: WeatherBitProperties,
         restClient: RestClient
-    ): (String) -> CurrentObsGroup = WeatherBitClient.currentWeather(
-        key = weatherBitProperties.apiKey,
-        restClient = restClient
-    )
-
-    @Bean
-    fun getWeatherForecast(
-        weatherBitProperties: WeatherBitProperties,
-        restClient: RestClient
-    ): (String) -> ForecastDay = WeatherBitClient.weatherForecast(
-        key = weatherBitProperties.apiKey,
-        restClient = restClient
+    ): WeatherBitRepository = WeatherBitRepository(
+        restClient = restClient,
+        apiKey = weatherBitProperties.apiKey,
+        forecastNbDays = weatherBitProperties.forecastNbDays
     )
 
     @Bean
