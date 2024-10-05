@@ -6,5 +6,6 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding
 @ConfigurationProperties(prefix = "external.weatherbit")
 data class WeatherBitProperties @ConstructorBinding constructor(
     val baseUrl: String,
-    val apiKey: String
+    val apiKey: String,
+    val forecastNbDays: Int
 )

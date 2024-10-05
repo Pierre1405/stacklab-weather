@@ -2,6 +2,7 @@ package com.stacklabs.weather.service
 
 import com.stacklabs.weather.SampleReader
 import com.stacklabs.weather.configuration.EvaluationProperties
+import com.stacklabs.weather.repository.WeatherBitRepository
 import com.stacklabs.weather.service.WeatherEvaluation.EvaluationFunctions.LINEAR
 import com.stacklabs.weather.service.WeatherEvaluation.EvaluationFunctions.SQUARE
 import org.junit.jupiter.api.Assertions.*
@@ -20,8 +21,8 @@ import java.math.BigDecimal
 
 class WeatherbitWeatherServiceTest {
 
-    private val getCurrentMock = mock<(String) -> CurrentObsGroup>()
-    private val getWeatherForecastMock = mock<(String) -> ForecastDay>()
+    private val weatherBitRepository = mock<WeatherBitRepository>()
+
     private val temperatureEvaluation = EvaluationProperties(
         optimalValue = 23.0,
         worstMinValue = -10.0,
@@ -37,8 +38,7 @@ class WeatherbitWeatherServiceTest {
         evaluationFunction = LINEAR
     )
     private val service = WeatherbitWeatherService(
-        getCurrentMock,
-        getWeatherForecastMock,
+        weatherBitRepository,
         temperatureEvaluation,
         pressureEvaluation
     )
@@ -46,7 +46,7 @@ class WeatherbitWeatherServiceTest {
     @Test
     fun test_getCurrentWeather_validData() {
         val currentObsGroup = SampleReader().readSampleAs<CurrentObsGroup>("api-samples/current-tokyo.json")
-        `when`(getCurrentMock.invoke("Tokyo")).thenReturn(currentObsGroup)
+        `when`(weatherBitRepository.getCurrentWeatherByCity("Tokyo")).thenReturn(currentObsGroup)
 
         val result: CurrentWeatherDto = service.getCurrentWeather("Tokyo")
 
@@ -68,7 +68,7 @@ class WeatherbitWeatherServiceTest {
 
     private fun testInvalidData(dataList: List<CurrentObs>?, expectedMessage: String) {
         val currentObsGroup = CurrentObsGroup(data = dataList)
-        `when`(getCurrentMock.invoke("Tokyo")).thenReturn(currentObsGroup)
+        `when`(weatherBitRepository.getCurrentWeatherByCity("Tokyo")).thenReturn(currentObsGroup)
 
         val exception = assertThrows<RuntimeException> {
             service.getCurrentWeather("Tokyo")
@@ -86,7 +86,7 @@ class WeatherbitWeatherServiceTest {
         )
         val currentObsGroup = CurrentObsGroup(count = 1, data = listOf(currentObs))
 
-        `when`(getCurrentMock.invoke("Tokyo")).thenReturn(currentObsGroup)
+        `when`(weatherBitRepository.getCurrentWeatherByCity("Tokyo")).thenReturn(currentObsGroup)
 
         val result = service.getCurrentWeather("Tokyo")
 
@@ -115,7 +115,7 @@ class WeatherbitWeatherServiceTest {
         )
         val forecastDay = ForecastDay(data = listOf(forecast1, forecast2))
 
-        `when`(getWeatherForecastMock.invoke("Tokyo")).thenReturn(forecastDay)
+        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(forecastDay)
 
         val result: WeatherForecastDto = service.getWeatherForecast("Tokyo")
 
@@ -132,7 +132,7 @@ class WeatherbitWeatherServiceTest {
     fun test_getWeatherForecast_nullData() {
         val forecastDay = ForecastDay(data = null)
 
-        `when`(getWeatherForecastMock.invoke("Tokyo")).thenReturn(forecastDay)
+        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(forecastDay)
 
         val exception = assertThrows<WeatherServiceException> {
             service.getWeatherForecast("Tokyo")
@@ -151,7 +151,7 @@ class WeatherbitWeatherServiceTest {
         )
         val forecastDay = ForecastDay(data = listOf(forecast1))
 
-        `when`(getWeatherForecastMock.invoke("Tokyo")).thenReturn(forecastDay)
+        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(forecastDay)
 
         val exception = assertThrows<WeatherServiceException> {
             service.getWeatherForecast("Tokyo")
