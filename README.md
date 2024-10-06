@@ -17,8 +17,8 @@
 - [X] rest route api
 - [X] mocked http integration test
 - [ ] http error management 
-- [ ] create a service for weather evaluation
-- [ ] add abstraction for weatherbit api client?
+- [X] create a service for weather evaluation
+- [X] add abstraction for weatherbit api client?
 - [ ] github pipeline publish docker image?
 - [ ] terraform?
 
