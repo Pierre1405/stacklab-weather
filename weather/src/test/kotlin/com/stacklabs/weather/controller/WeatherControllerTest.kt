@@ -11,10 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.stacklabs.weather.dto.BeaufortScale
-import org.stacklabs.weather.dto.CurrentWeatherDto
-import org.stacklabs.weather.dto.Tendency
-import org.stacklabs.weather.dto.WeatherForecastDto
+import org.stacklabs.weather.dto.*
 
 @WebMvcTest(WeatherController::class)
 class WeatherControllerTest {
@@ -46,7 +43,7 @@ class WeatherControllerTest {
     fun test_forecast_valid_city() {
         val city = "Tokyo"
         val expectedDto =
-            WeatherForecastDto(Tendency.INCREASING, Tendency.INCREASING, Tendency.INCREASING, BeaufortScale.LIGHT_AIR)
+            WeatherForecastDto(Tendency.INCREASING, Tendency.INCREASING, BigTendency.INCREASING, BeaufortScale.LIGHT_AIR)
 
         Mockito.`when`(weatherService.getWeatherForecast(city)).thenReturn(expectedDto)
 

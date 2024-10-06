@@ -4,16 +4,16 @@ import com.stacklabs.weather.entity.WeatherForecastEntity
 import com.stacklabs.weather.repository.WeatherRepository
 import com.stacklabs.weather.service.evaluation.ForecastEvaluation
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import org.stacklabs.weather.dto.BeaufortScale
-import org.stacklabs.weather.dto.CurrentWeatherDto
-import org.stacklabs.weather.dto.Tendency
-import org.stacklabs.weather.dto.WeatherForecastDto
+import org.stacklabs.weather.dto.*
 
 @Service
 class WeatherbitWeatherService @Autowired constructor(
     private val repository: WeatherRepository,
-    private val forecastEvaluation: ForecastEvaluation
+    private val forecastEvaluation: ForecastEvaluation,
+    @Value(value = "\${evaluation.pressure.big-fall-delta}")
+    private val pressureBigFallDelta: Double
 ) : WeatherService {
 
     override fun getCurrentWeather(city: String): CurrentWeatherDto =
@@ -58,9 +58,10 @@ class WeatherbitWeatherService @Autowired constructor(
                 referenceDay.temperature!!,
                 daysAverage.temperature!!
             ),
-            pressureTendency = Tendency.get(
+            pressureTendency = BigTendency.get(
                 referenceDay.pressure!!,
-                daysAverage.pressure!!
+                daysAverage.pressure!!,
+                pressureBigFallDelta
             ),
             windAverage = BeaufortScale.getFromMeterPerSeconds(daysAverage.windSpeed!!)
         )
