@@ -30,6 +30,4 @@ class AppConfiguration {
             temperatureEvaluation = weatherEvaluationConfiguration.temperature.toValueEvaluation(),
             pressureEvaluation = weatherEvaluationConfiguration.pressure.toValueEvaluation()
         )
-
-
 }

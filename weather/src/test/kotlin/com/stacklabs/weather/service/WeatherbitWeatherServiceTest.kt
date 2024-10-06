@@ -13,10 +13,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import org.stacklabs.weather.dto.BeaufortScale
-import org.stacklabs.weather.dto.CurrentWeatherDto
-import org.stacklabs.weather.dto.Tendency
-import org.stacklabs.weather.dto.WeatherForecastDto
+import org.stacklabs.weather.dto.*
 import java.time.LocalDate
 
 class WeatherbitWeatherServiceTest {
@@ -40,7 +37,8 @@ class WeatherbitWeatherServiceTest {
                     weight = 5.0
                 )
             )
-        )
+        ),
+        pressureBigFallDelta = 4.0
     )
 
     @Test
@@ -88,7 +86,7 @@ class WeatherbitWeatherServiceTest {
         val expected = WeatherForecastDto(
             globalTendency = Tendency.INCREASING,
             temperatureTendency = Tendency.INCREASING,
-            pressureTendency = Tendency.DECREASING,
+            pressureTendency = BigTendency.DECREASING,
             windAverage = BeaufortScale.LIGHT_BREEZE
         )
         assertEquals(expected, result)

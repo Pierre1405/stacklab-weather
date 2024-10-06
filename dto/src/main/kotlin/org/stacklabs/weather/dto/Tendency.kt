@@ -3,7 +3,7 @@ package org.stacklabs.weather.dto
 import io.swagger.v3.oas.annotations.media.Schema
 
 
-@Schema(description = "Forecast tendency")
+@Schema(description = "Tendency")
 enum class Tendency {
     INCREASING,
     CONSTANT,
