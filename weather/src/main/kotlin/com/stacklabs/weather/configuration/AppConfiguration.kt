@@ -1,6 +1,8 @@
 package com.stacklabs.weather.configuration
 
 import com.stacklabs.weather.repository.WeatherBitRepository
+import com.stacklabs.weather.service.evaluation.ForecastEvaluation
+import com.stacklabs.weather.service.evaluation.TemperatureAndPressureForecastEvaluation
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestClient
@@ -18,17 +20,16 @@ class AppConfiguration {
         weatherBitProperties: WeatherBitProperties,
         restClient: RestClient
     ): WeatherBitRepository = WeatherBitRepository(
-        restClient = restClient,
-        apiKey = weatherBitProperties.apiKey,
-        forecastNbDays = weatherBitProperties.forecastNbDays
+        weatherBitProperties,
+        restClient
     )
 
     @Bean
-    fun temperatureEvaluation(weatherEvaluationConfiguration: WeatherEvaluationConfiguration) =
-        weatherEvaluationConfiguration.temperature
+    fun weatherEvaluation(weatherEvaluationConfiguration: ForecastEvaluationConfiguration): ForecastEvaluation =
+        TemperatureAndPressureForecastEvaluation(
+            temperatureEvaluation = weatherEvaluationConfiguration.temperature.toValueEvaluation(),
+            pressureEvaluation = weatherEvaluationConfiguration.pressure.toValueEvaluation()
+        )
 
-    @Bean
-    fun pressureEvaluation(weatherEvaluationConfiguration: WeatherEvaluationConfiguration) =
-        weatherEvaluationConfiguration.pressure
 
 }

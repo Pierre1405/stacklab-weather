@@ -145,6 +145,9 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
 
         init {
             val properties = Properties()
+
+            // the startServer will be called in a static @BeforeAll annotated function
+            // the spring context won't be loaded, we have to properties in the old style
             properties.load(MockServerTest.Companion::class.java.classLoader.getResourceAsStream("application-$PROFILE_NAME.properties"))
             weatherBitProperties = WeatherBitProperties(
                 apiKey = properties.get("external.weatherbit.api-key") as String,
