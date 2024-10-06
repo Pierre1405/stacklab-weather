@@ -151,7 +151,6 @@ class MockServerTest(
 
     companion object {
 
-
         @JvmStatic
         @BeforeAll
         fun setUp() {

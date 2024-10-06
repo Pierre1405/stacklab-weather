@@ -1,101 +1,70 @@
 package com.stacklabs.weather.service
 
-import com.stacklabs.weather.configuration.EvaluationProperties
-import com.stacklabs.weather.repository.WeatherBitRepository
-import com.stacklabs.weather.service.WeatherEvaluation.evaluate
-import com.stacklabs.weather.weatherbit.models.Forecast
+import com.stacklabs.weather.entity.WeatherForecastEntity
+import com.stacklabs.weather.repository.WeatherRepository
+import com.stacklabs.weather.service.evaluation.ForecastEvaluation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.stacklabs.weather.dto.BeaufortScale
 import org.stacklabs.weather.dto.CurrentWeatherDto
 import org.stacklabs.weather.dto.Tendency
 import org.stacklabs.weather.dto.WeatherForecastDto
-import java.time.LocalDate
 
 @Service
 class WeatherbitWeatherService @Autowired constructor(
-    private val repository: WeatherBitRepository,
-    private val temperatureEvaluation: EvaluationProperties,
-    private val pressureEvaluation: EvaluationProperties
+    private val repository: WeatherRepository,
+    private val forecastEvaluation: ForecastEvaluation
 ) : WeatherService {
 
-    override fun getCurrentWeather(city: String): CurrentWeatherDto {
-        val currentWeather = repository.getCurrentWeatherByCity(city)
-        val currentObs = currentWeather.data?.let {
-            when (it.size) {
-                0 -> throw RuntimeException("Not able to retrieve current weather, empty data")
-                1 -> it.first()
-                else -> throw RuntimeException("Not able to retrieve current weather, more than one data found")
-            }
-        }
-            ?: throw WeatherServiceException("Not able to retrieve current weather, no data found")
-
-        return CurrentWeatherDto(
-            description = currentObs.weather?.description,
-            temperature = currentObs.temp?.toDouble(),
-            humidity = currentObs.rh,
-            windSpeed = currentObs.windSpd?.toDouble()
-        )
-    }
-
-    private data class ForecastAcc(
-        val global: Double = 0.0,
-        val temperature: Double = 0.0,
-        val pressure: Double = 0.0,
-        val windSpeed: Double = 0.0
-    ) {
-        fun average(nbDays: Int) = copy(
-            global = global / nbDays,
-            temperature = temperature / nbDays,
-            pressure = pressure / nbDays,
-            windSpeed = windSpeed / nbDays
-        )
-    }
-
-    override fun getWeatherForecast(city: String): WeatherForecastDto {
-        val weatherForecast = repository.getWeatherForecastByCity(city)
-        val weatherForecastData = weatherForecast.data
-            ?: throw WeatherServiceException("Not able to retrieve weather forecast, no data found")
-
-        val referenceDay = weatherForecastData.minBy { LocalDate.parse(it.datetime) }
-
-        val acc = weatherForecastData.fold(ForecastAcc()) { acc, forecast ->
-            ForecastAcc(
-                global = acc.global + calculateEvaluationScore(forecast),
-                temperature = acc.temperature + (forecast.temp?.toDouble()
-                    ?: throw WeatherServiceException("Not able to retrieve weather forecast, a temperature is missing")),
-                pressure = acc.pressure + (forecast.pres?.toDouble()
-                    ?: throw WeatherServiceException("Not able to retrieve weather forecast, a pressure is missing")),
-                windSpeed = acc.windSpeed + (forecast.windSpd?.toDouble()
-                    ?: throw WeatherServiceException("Not able to retrieve weather forecast, a wind speed is missing"))
+    override fun getCurrentWeather(city: String): CurrentWeatherDto =
+        repository.getCurrentWeatherByCity(city).let {
+            CurrentWeatherDto(
+                description = it.description,
+                temperature = it.temperature,
+                humidity = it.humidity,
+                windSpeed = it.windSpeed
             )
         }
 
-        val otherDayAverage = acc.average(weatherForecastData.size)
+    override fun getWeatherForecast(city: String): WeatherForecastDto {
+        val weatherForecasts = repository.getWeatherForecastByCity(city).data
+        val referenceDay = weatherForecasts.minBy { it.datetime }
+
+        val sum = weatherForecasts.fold(WeatherForecastEntity(0.0, 0.0, 0.0)) { acc, forecast ->
+            WeatherForecastEntity(
+                temperature = acc.temperature!! + (forecast.temperature
+                    ?: throw WeatherServiceException("Not able to retrieve weather forecast, a temperature is null")),
+                pressure = acc.pressure!! + (forecast.pressure
+                    ?: throw WeatherServiceException("Not able to retrieve weather forecast, a pressure is null")),
+                windSpeed = acc.windSpeed!! + (forecast.windSpeed
+                    ?: throw WeatherServiceException("Not able to retrieve weather forecast, a wind speed is null"))
+            )
+        }
+
+        // lot of !!, but, it should never happen due to the exceptions throws on null values in the previous fold
+        val nbDays = weatherForecasts.size
+        val daysAverage = WeatherForecastEntity(
+            temperature = sum.temperature!! / nbDays,
+            pressure = sum.pressure!! / nbDays,
+            windSpeed = sum.windSpeed!! / nbDays
+        )
 
         return WeatherForecastDto(
-            globalTendency = Tendency.get(calculateEvaluationScore(referenceDay), otherDayAverage.global),
+            globalTendency = Tendency.get(
+                forecastEvaluation.evaluate(referenceDay),
+                forecastEvaluation.evaluate(daysAverage)
+            ),
             temperatureTendency = Tendency.get(
-                referenceDay.temp?.toDouble()
-                    ?: throw WeatherServiceException("Not able to evaluate temperature tendency, reference temperature is missing"),
-                otherDayAverage.temperature
+                referenceDay.temperature!!,
+                daysAverage.temperature!!
             ),
             pressureTendency = Tendency.get(
-                referenceDay.pres?.toDouble()
-                    ?: throw WeatherServiceException("Not able to evaluate pressure tendency, reference pressure is missing"),
-                otherDayAverage.pressure
+                referenceDay.pressure!!,
+                daysAverage.pressure!!
             ),
-            windAverage = BeaufortScale.getFromMeterPerSeconds(otherDayAverage.windSpeed)
+            windAverage = BeaufortScale.getFromMeterPerSeconds(daysAverage.windSpeed!!)
         )
     }
 
-    private fun calculateEvaluationScore(forecast: Forecast): Double {
-        return evaluate(
-            forecast.temp?.toDouble() ?: throw WeatherServiceException("Not able to evaluate global tendency"),
-            temperatureEvaluation
-        ) + evaluate(
-            forecast.pres?.toDouble() ?: throw WeatherServiceException("Not able to evaluate global tendency"),
-            pressureEvaluation
-        )
-    }
+
 }
