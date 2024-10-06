@@ -16,10 +16,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.web.client.HttpServerErrorException
 import org.springframework.web.client.RestClient
-import org.stacklabs.weather.dto.BeaufortScale
-import org.stacklabs.weather.dto.CurrentWeatherDto
-import org.stacklabs.weather.dto.Tendency
-import org.stacklabs.weather.dto.WeatherForecastDto
+import org.stacklabs.weather.dto.*
 
 private const val CURRENT = "/current?city=%s"
 private const val FORECAST = "/forecast?city=%s"
@@ -32,6 +29,7 @@ class MockServerTest(
     @Value("\${server.servlet.context-path}")
     val apiPath: String,
 ) {
+    @Suppress("LeakingThis")
     val restClient: RestClient = RestClient.create("""http://localhost:$serverPort$apiPath/weather""")
 
     @BeforeEach
@@ -92,7 +90,7 @@ class MockServerTest(
         val expectedDto = WeatherForecastDto(
             globalTendency = Tendency.INCREASING,
             temperatureTendency = Tendency.DECREASING,
-            pressureTendency = Tendency.INCREASING,
+            pressureTendency = BigTendency.BIG_INCREASING,
             windAverage = BeaufortScale.GENTLE_BREEZE
         )
         assertEquals(expectedDto, response.body)
