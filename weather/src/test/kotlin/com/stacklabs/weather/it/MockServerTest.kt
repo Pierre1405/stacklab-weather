@@ -48,7 +48,7 @@ class MockServerTest(
         val expectedDto = CurrentWeatherDto(
             description = "Clear sky",
             temperature = 25.0,
-            windSpeed = 7.2,
+            windSpeed = 25.92,
             humidity = 88
         )
         assertEquals(expectedDto, response.body)

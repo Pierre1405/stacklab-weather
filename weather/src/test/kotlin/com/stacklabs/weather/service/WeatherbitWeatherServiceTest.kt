@@ -62,7 +62,7 @@ class WeatherbitWeatherServiceTest {
             description = "Clear sky",
             temperature = 25.0,
             humidity = 88,
-            windSpeed = 7.2
+            windSpeed = 25.92
         )
         assertEquals(expected, result)
     }
