@@ -48,3 +48,9 @@ tasks.named(name = "openApiGenerate", GenerateTask::class) {
         "omitGradleWrapper" to true
     )
 }
+
+tasks.register("printVersionInformation", DefaultTask::class) {
+    doLast {
+        println(getVersion().toString())
+    }
+}
