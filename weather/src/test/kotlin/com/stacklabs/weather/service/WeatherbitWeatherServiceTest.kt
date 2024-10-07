@@ -92,7 +92,6 @@ class WeatherbitWeatherServiceTest {
         assertEquals(expected, result)
     }
 
-
     @Test
     fun test_getWeatherForecast_tempIsNull() {
         val forecast1 = WeatherForecastEntity(
