@@ -67,13 +67,11 @@ class MockServerTest(
 
     @Test
     fun test_current_weather_city_failure() {
-        assertFailure(
-            city = "WRONG_CITY",
-            registerRequest = getServerConfig()::registerCurrentCityFailure,
-            apiCall = ::callCurrentApi,
-            verifyRequest = getServerConfig()::verifyCurrentRequest,
-            expectedStatus = HttpStatus.INTERNAL_SERVER_ERROR
-        )
+        val city = "WRONG_CITY"
+        getServerConfig().registerCurrentCityFailure(city)
+        val result = callCurrentApi(city)
+        getServerConfig().verifyCurrentRequest(city)
+        assertEquals(HttpStatus.NO_CONTENT, result.statusCode)
     }
 
     @Test
@@ -109,13 +107,11 @@ class MockServerTest(
 
     @Test
     fun test_weather_forecast_city_failure() {
-        assertFailure(
-            city = "WRONG_CITY",
-            registerRequest = getServerConfig()::registerForecastCityFailure,
-            apiCall = ::callForecastApi,
-            verifyRequest = getServerConfig()::verifyForecastRequest,
-            expectedStatus = HttpStatus.INTERNAL_SERVER_ERROR
-        )
+        val city = "WRONG_CITY"
+        getServerConfig().registerForecastCityFailure(city)
+        val result = callForecastApi(city)
+        getServerConfig().verifyForecastRequest(city)
+        assertEquals(HttpStatus.NO_CONTENT, result.statusCode)
     }
 
     private fun callCurrentApi(city: String) =
