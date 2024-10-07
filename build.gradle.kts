@@ -40,12 +40,6 @@ tasks.named(name = "openApiGenerate", GenerateTask::class) {
     generateApiDocumentation = false
     cleanupOutput = true
 
-    /*
-    globalProperties = mapOf(
-        "apis" to "CurrentWeatherData,Class16DayDailyForecast",
-        "models" to "Forecast,ForecastDay"
-    )
-    */
     additionalProperties = mapOf(
         "omitGradlePluginVersions" to true,
         "useSpringBoot3" to true,
