@@ -32,6 +32,30 @@ docker build -t stacklabs/weather .
 - launch `docker run -p 8080:8080 stacklabs/weather` command in order to run weather application.
 - you can check http://localhost:8080/api/v1/swagger-ui/index.html for swagger ui documentation.
 
+- you can also use one of the image deploy on docker hub https://hub.docker.com/r/pierre1405/personal/tags
+  (sorry for the name, free accounts are limites to a single repo)
+```
+docker run -p 8080:8080 pierre1405/personal:latest
+```
+
+# CI/CD
+There is 2 github actions pipeline defined,
+- a CD pipeline launch for each commit pushed on the main and develop branches and for each pull request
+  The pipeline build the app and run the tests.
+- a push docker image pipeline launch for each commit pushed on the main and develop branches.
+
+check `.github/workflows/docker-image.yml` and `.github/workflows/gradle.yml` for more details 
+
+# Code life cyle
+
+- we use github issue to create the feature branch.
+- we use github pull request to merge the feature branch into the develop branch.
+- we use github pull request to merge the develop branch into the main branch.
+- we use the net.researchgate.release plugin to release the main branch.
+- I give a try to io.github.robwin.jgitflow plugin to manage the git flow branch, but it not so relevant 
+while using github.
+
+
 # Issues
 
 ## Weather bit non-functional swagger file
