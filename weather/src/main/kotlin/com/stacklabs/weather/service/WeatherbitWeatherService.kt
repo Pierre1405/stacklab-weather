@@ -1,8 +1,11 @@
 package com.stacklabs.weather.service
 
 import com.stacklabs.weather.entity.WeatherForecastEntity
+import com.stacklabs.weather.repository.CityNotFoundWeatherBitRepositoryException
+import com.stacklabs.weather.repository.WeatherBitRepositoryException
 import com.stacklabs.weather.repository.WeatherRepository
 import com.stacklabs.weather.service.evaluation.ForecastEvaluation
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -16,15 +19,26 @@ class WeatherbitWeatherService @Autowired constructor(
     private val pressureBigFallDelta: Double
 ) : WeatherService {
 
-    override fun getCurrentWeather(city: String): CurrentWeatherDto =
-        repository.getCurrentWeatherByCity(city).let {
-            CurrentWeatherDto(
-                description = it.description,
-                temperature = it.temperature,
-                humidity = it.humidity,
-                windSpeed = it.windSpeed
-            )
+    val logger = LoggerFactory.getLogger(WeatherbitWeatherService::class.java)
+
+    override fun getCurrentWeather(city: String): CurrentWeatherDto {
+        val currentWeatherByCity = try {
+            val currentWeatherByCity = repository.getCurrentWeatherByCity(city)
+            currentWeatherByCity
+        } catch (e: WeatherBitRepositoryException) {
+            logger.debug("Repository error", e)
+            when (e) {
+                is CityNotFoundWeatherBitRepositoryException -> throw CityNotWeatherServiceException(city)
+                else -> throw e
+            }
         }
+        return CurrentWeatherDto(
+            description = currentWeatherByCity.description,
+            temperature = currentWeatherByCity.temperature,
+            humidity = currentWeatherByCity.humidity,
+            windSpeed = currentWeatherByCity.windSpeed
+        )
+    }
 
     private fun throwIfFieldNull(entity: WeatherForecastEntity) {
         throwIfValueNull(entity.temperature, "temperature")
@@ -36,7 +50,15 @@ class WeatherbitWeatherService @Autowired constructor(
         value ?: throw WeatherServiceException("Not able to retrieve weather forecast, a $fieldName is null")
 
     override fun getWeatherForecast(city: String): WeatherForecastDto {
-        val weatherForecasts = repository.getWeatherForecastByCity(city).data
+        val weatherForecasts = try {
+            repository.getWeatherForecastByCity(city).data
+        } catch (e: WeatherBitRepositoryException) {
+            logger.debug("Repository error", e)
+            when (e) {
+                is CityNotFoundWeatherBitRepositoryException -> throw CityNotWeatherServiceException(city)
+                else -> throw e
+            }
+        }
         weatherForecasts.forEach(::throwIfFieldNull)
 
         val today: WeatherForecastEntity = weatherForecasts.minBy { it.datetime }
