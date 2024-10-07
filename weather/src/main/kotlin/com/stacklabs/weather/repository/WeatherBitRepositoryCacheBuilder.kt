@@ -16,16 +16,25 @@ class WeatherBitRepositoryCacheBuilder<T> {
         .build()
 
     companion object {
-
+        /**
+         * Cache expiration policy for WeatherBitRepository.
+         * It set the cache duration based on the response header X-RateLimit-Reset.
+         * X-RateLimit-Reset = second timestamp when the weatherbit rate limit resets
+         * @param <T> type of the body response
+         */
         private class WeatherBitRepositoryCacheBuilderPolicy<T> : Expiry<String, ResponseEntity<T>> {
+            fun getExpiringCacheDuration(rateLimitResetTimeStamp: Long): Long =
+                TimeUnit.MILLISECONDS.toNanos(TimeUnit.SECONDS.toMillis(rateLimitResetTimeStamp) - System.currentTimeMillis())
+
             override fun expireAfterCreate(
                 key: String?,
                 weatherBitResponse: ResponseEntity<T>?,
                 currentTime: Long
             ): Long {
-                val maybeResetAt = weatherBitResponse?.headers?.getFirst(WEATHER_BIT_EXPIRE_HEADER_NAME)?.toLong()
-                return if (maybeResetAt != null) {
-                    TimeUnit.MILLISECONDS.toNanos(TimeUnit.SECONDS.toMillis(maybeResetAt) - System.currentTimeMillis())
+                val rateLimitResetTimeStamp =
+                    weatherBitResponse?.headers?.getFirst(WEATHER_BIT_EXPIRE_HEADER_NAME)?.toLong()
+                return if (rateLimitResetTimeStamp != null) {
+                    getExpiringCacheDuration(rateLimitResetTimeStamp)
                 } else {
                     0
                 }
