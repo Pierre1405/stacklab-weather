@@ -16,11 +16,8 @@
 - [X] dockerized
 - [X] rest route api
 - [X] mocked http integration test
-- [ ] http error management 
 - [X] create a service for weather evaluation
 - [X] add abstraction for weatherbit api client?
-- [ ] github pipeline publish docker image?
-- [ ] terraform?
 
 # Startup
 
@@ -35,7 +32,7 @@ docker build -t stacklabs/weather .
 - launch `docker run -p 8080:8080 stacklabs/weather` command in order to run weather application.
 - you can check http://localhost:8080/api/v1/swagger-ui/index.html for swagger ui documentation.
 
-# Platanes
+# Issues
 
 ## Weather bit non-functional swagger file
 In order to avoid information duplication I choose to generate a weather bit client from the 
@@ -54,3 +51,17 @@ I finally chose the first solution, which is more interesting to discuss during 
 
 In real life I may have done a different choice depending if it's a short or long life project and if I have the 
 possibility to contact and work with the team in charge of the api and the documentation. 
+
+
+## Incoherent city not found error
+
+When the city is not found, the weatherbit api current weather endpoint return a 400 error with body
+```json
+{
+    "error": "No Location Found. Try lat/lon."
+}
+```
+When the city is not found, the weatherbit api forecast daily endpoint return a 204 error without body
+
+Not easy to do a proper error management
+

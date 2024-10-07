@@ -2,8 +2,8 @@ plugins {
     kotlin("jvm")
 }
 
-group = "org.stacklabs"
-version = "unspecified"
+group = "com.stacklabs"
+version = "0.0.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
