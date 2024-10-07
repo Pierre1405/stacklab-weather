@@ -36,7 +36,7 @@ class WeatherbitWeatherService @Autowired constructor(
             description = currentWeatherByCity.description,
             temperature = currentWeatherByCity.temperature,
             humidity = currentWeatherByCity.humidity,
-            windSpeed = currentWeatherByCity.windSpeed
+            windSpeed = currentWeatherByCity.windSpeed?.let(BeaufortScale::meterSecondToKmPerHour)
         )
     }
 

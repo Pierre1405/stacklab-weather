@@ -34,7 +34,7 @@ enum class BeaufortScale(@JsonValue val value: Int, val rangeKmPerHour: IntRange
 
         private const val METERS_PER_KM: Double = 1000.0
         private const val SECOND_PER_HOURS: Double = 3600.0
-        private fun meterSecondToKmPerHour(speedMeterPerSecond: Double): Double =
+        fun meterSecondToKmPerHour(speedMeterPerSecond: Double): Double =
             speedMeterPerSecond * SECOND_PER_HOURS / METERS_PER_KM
 
     }
