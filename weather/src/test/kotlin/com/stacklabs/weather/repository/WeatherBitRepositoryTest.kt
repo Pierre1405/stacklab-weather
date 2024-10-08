@@ -1,5 +1,8 @@
 package com.stacklabs.weather.repository
 
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.stacklabs.weather.cache.Result
+import com.stacklabs.weather.cache.WeatherBitCachePolicy
 import com.stacklabs.weather.configuration.WeatherBitProperties
 import com.stacklabs.weather.entity.CurrentWeatherEntity
 import com.stacklabs.weather.entity.WeatherForecastEntity
@@ -25,6 +28,13 @@ class WeatherBitRepositoryTest {
     private val forecastNbDays = 5
     private val configuration = WeatherBitProperties("http://test.url", apiKey, forecastNbDays)
     private val restClient = mock(RestClient::class.java)
+    private val currentCache = Caffeine.newBuilder()
+            .expireAfter(WeatherBitCachePolicy<CurrentObsGroup>())
+            .build<String, Result<CurrentObsGroup>>()
+    private val forecastCache = Caffeine.newBuilder()
+            .expireAfter(WeatherBitCachePolicy<ForecastDay>())
+            .build<String, Result<ForecastDay>>()
+
 
     @Test
     fun test_getCurrentWeatherByCity_validCity() {
@@ -46,7 +56,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         when (val result = repository.getCurrentWeatherByCity(city)) {
@@ -74,10 +86,11 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
-        val result = repository.getCurrentWeatherByCity(city)
-        when (result) {
+        when (val result = repository.getCurrentWeatherByCity(city)) {
             is WeatherRepositoryResult.Error<CurrentWeatherEntity> -> {
                 assertEquals("Data.size should be 1", result.message)
             }
@@ -101,7 +114,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         when (val result = repository.getCurrentWeatherByCity(city)) {
@@ -123,7 +138,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         when (val result = repository.getCurrentWeatherByCity(city)) {
@@ -151,11 +168,12 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
-        val result = repository.getCurrentWeatherByCity(city)
-        when (result) {
+        when (val result = repository.getCurrentWeatherByCity(city)) {
             is WeatherRepositoryResult.CityNotFound<CurrentWeatherEntity> -> {
                 assertEquals(city, result.city)
             }
@@ -178,11 +196,12 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
-        val result = repository.getCurrentWeatherByCity(city)
-        when (result) {
+        when (val result = repository.getCurrentWeatherByCity(city)) {
             is WeatherRepositoryResult.Error<CurrentWeatherEntity> -> {
                 assertEquals("Data.size should be 1", result.message)
             }
@@ -213,7 +232,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            weatherForecastDataApi = class16DayDailyForecastApi
+            weatherForecastDataApi = class16DayDailyForecastApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         when (val result = repository.getWeatherForecastByCity(city)) {
@@ -251,7 +272,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            weatherForecastDataApi = class16DayDailyForecastApi
+            weatherForecastDataApi = class16DayDailyForecastApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         when (val result = repository.getWeatherForecastByCity(city)) {
@@ -280,7 +303,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            weatherForecastDataApi = class16DayDailyForecastApi
+            weatherForecastDataApi = class16DayDailyForecastApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         when (val result = repository.getWeatherForecastByCity(city)) {
@@ -312,7 +337,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            currentWeatherDataApi = currentWeatherDataApi
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         assertTrue(repository.getCurrentWeatherByCity(city) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
@@ -352,7 +379,9 @@ class WeatherBitRepositoryTest {
         val repository = WeatherBitRepository(
             configuration,
             restClient,
-            weatherForecastDataApi = class16DayDailyForecastApi
+            weatherForecastDataApi = class16DayDailyForecastApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
         )
 
         assertTrue(repository.getWeatherForecastByCity(city) is WeatherRepositoryResult.Success<WeatherForecastsEntity>)
@@ -375,5 +404,78 @@ class WeatherBitRepositoryTest {
             city = city,
             days = forecastNbDays.toBigDecimal()
         )
+    }
+
+    @Test
+    fun test_getCurrentWeatherByCity_errorCached() {
+        val city = "TestCity"
+        val currentWeatherDataApi = mock(CurrentWeatherDataApi::class.java)
+
+        val headers = HttpHeaders()
+        val nowAnd10seconds = (System.currentTimeMillis() / 1000 + 2).toString()
+        headers.add("X-RateLimit-Reset", nowAnd10seconds)
+        val httpError = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).headers(headers).build<CurrentObsGroup>()
+        `when`(currentWeatherDataApi.currentGetWithHttpInfo(apiKey, city = city)).thenReturn(httpError)
+
+        val repository = WeatherBitRepository(
+            configuration,
+            restClient,
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
+        )
+
+        assertTrue(repository.getCurrentWeatherByCity(city) is WeatherRepositoryResult.Error<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(1)).currentGetWithHttpInfo(apiKey, city = city)
+        assertTrue(repository.getCurrentWeatherByCity(city) is WeatherRepositoryResult.Error<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(1)).currentGetWithHttpInfo(apiKey, city = city)
+
+        Thread.sleep(3000)
+        assertTrue(repository.getCurrentWeatherByCity(city) is WeatherRepositoryResult.Error<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(2)).currentGetWithHttpInfo(apiKey, city = city)
+    }
+
+    @Test
+    fun test_getCurrentWeatherByCity_differentCityAreStoreInDifferentCache() {
+        val tokyo = "Tokyo"
+        val paris = "Paris"
+        val currentObs = CurrentObs(
+            weather = CurrentObsWeather(description = "Clear sky"),
+            temp = java.math.BigDecimal(25.0),
+            rh = 60,
+            windSpd = java.math.BigDecimal(5.0)
+        )
+        val currentObsGroup = CurrentObsGroup(data = listOf(currentObs))
+        val currentWeatherDataApi = mock(CurrentWeatherDataApi::class.java)
+
+        val headers = HttpHeaders()
+        val nowAnd10seconds = (System.currentTimeMillis() / 1000 + 2).toString()
+        headers.add("X-RateLimit-Reset", nowAnd10seconds)
+        val ok = ResponseEntity.ok().headers(headers).body(currentObsGroup)
+        `when`(currentWeatherDataApi.currentGetWithHttpInfo(apiKey, city = tokyo)).thenReturn(ok)
+        `when`(currentWeatherDataApi.currentGetWithHttpInfo(apiKey, city = paris)).thenReturn(ok)
+
+        val repository = WeatherBitRepository(
+            configuration,
+            restClient,
+            currentWeatherDataApi = currentWeatherDataApi,
+            currentApiCache = currentCache,
+            forecastCache = forecastCache
+        )
+
+        assertTrue(repository.getCurrentWeatherByCity(paris) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(1)).currentGetWithHttpInfo(apiKey, city = paris)
+        assertTrue(repository.getCurrentWeatherByCity(tokyo) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(1)).currentGetWithHttpInfo(apiKey, city = tokyo)
+        assertTrue(repository.getCurrentWeatherByCity(paris) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(1)).currentGetWithHttpInfo(apiKey, city = paris)
+        assertTrue(repository.getCurrentWeatherByCity(tokyo) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(1)).currentGetWithHttpInfo(apiKey, city = tokyo)
+
+        Thread.sleep(3000)
+        assertTrue(repository.getCurrentWeatherByCity(paris) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(2)).currentGetWithHttpInfo(apiKey, city = paris)
+        assertTrue(repository.getCurrentWeatherByCity(tokyo) is WeatherRepositoryResult.Success<CurrentWeatherEntity>)
+        verify(currentWeatherDataApi, times(2)).currentGetWithHttpInfo(apiKey, city = tokyo)
     }
 }
