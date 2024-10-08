@@ -30,7 +30,8 @@ class WeatherBitRepository(
         WeatherBitRepositoryCacheBuilder<ForecastDay>().create()
 
 
-    override fun getCurrentWeatherByCity(city: String): CurrentWeatherEntity {
+    override fun getCurrentWeatherByCity(city: String): WeatherRepositoryResult<CurrentWeatherEntity> {
+        logger.debug("Retrieving current weather for city {}", city)
         val currentWeather: ResponseEntity<CurrentObsGroup> = try {
             currentCache.get(city) { cacheKey ->
                 currentWeatherDataApi.currentGetWithHttpInfo(
@@ -39,32 +40,32 @@ class WeatherBitRepository(
                 )
             }
         } catch (e: HttpClientErrorException) {
-            logger.debug("HttpClient error", e)
-            val responseBody: String = e.responseBodyAsString
-            if (e.statusCode == HttpStatus.BAD_REQUEST && responseBody.contains("No Location Found")) {
-                throw CityNotFoundWeatherBitRepositoryException(city)
+            logger.error("Exception occurred while retrieving current weather for city: $city", e)
+            val isCityNotFound = e.statusCode == HttpStatus.BAD_REQUEST && e.responseBodyAsString.contains("No Location Found")
+            when {
+                (isCityNotFound) -> return WeatherRepositoryResult.CityNotFound(city)
+                else -> return WeatherRepositoryResult.Error(e.message, e)
             }
-            throw WeatherBitRepositoryException("Not able to retrieve current weather, weatherbit error ${e.statusCode}", e)
         }
 
-        // Process response
-        val currentObs = currentWeather.body?.data?.let {
-            when (it.size) {
-                0 -> throw WeatherBitRepositoryException("Not able to retrieve current weather, empty data")
-                1 -> it.first()
-                else -> throw WeatherBitRepositoryException("Not able to retrieve current weather, more than one data found")
-            }
+        when {
+            (currentWeather.body?.data == null) -> return WeatherRepositoryResult.Error("Response body or body.data null")
+            (currentWeather.body?.data?.size != 1) -> return WeatherRepositoryResult.Error("Data.size should be 1")
         }
-            ?: throw WeatherBitRepositoryException("Not able to retrieve current weather, no data found")
-        return CurrentWeatherEntity(
-            description = currentObs.weather?.description,
-            temperature = currentObs.temp?.toDouble(),
-            humidity = currentObs.rh,
-            windSpeed = currentObs.windSpd?.toDouble()
+
+        val currentObs = currentWeather.body!!.data!!.first()
+        return WeatherRepositoryResult.Success(
+            CurrentWeatherEntity(
+                description = currentObs.weather?.description,
+                temperature = currentObs.temp?.toDouble(),
+                humidity = currentObs.rh,
+                windSpeed = currentObs.windSpd?.toDouble()
+            )
         )
     }
 
-    override fun getWeatherForecastByCity(city: String): WeatherForecastsEntity {
+    override fun getWeatherForecastByCity(city: String): WeatherRepositoryResult<WeatherForecastsEntity> {
+        logger.debug("Retrieving weather forecast for city {}", city)
         val weatherForecast = try {
             forecastCache.get(city) { cacheKey ->
                 weatherForecastDataApi.forecastDailyGetWithHttpInfo(
@@ -74,25 +75,27 @@ class WeatherBitRepository(
                 )
             }
         } catch (e: HttpClientErrorException) {
-            logger.debug("HttpClient error", e)
-            throw WeatherBitRepositoryException("Not able to retrieve weather forecast, weatherbit error ${e.statusCode}", e)
+            logger.error("Exception occurred while retrieving current weather for city: $city", e)
+            return WeatherRepositoryResult.Error(e.message, e)
         }
 
-        // Process response
-        if (weatherForecast.statusCode == HttpStatus.NO_CONTENT && weatherForecast.body == null) {
-            throw CityNotFoundWeatherBitRepositoryException(city)
+        val isCityNotFound = weatherForecast.statusCode == HttpStatus.NO_CONTENT && weatherForecast.body == null
+        when {
+            isCityNotFound -> return WeatherRepositoryResult.CityNotFound(city)
+            (weatherForecast.body?.data == null) -> return WeatherRepositoryResult.Error("Response body or body.data null")
         }
-        val weatherForecastData = weatherForecast.body?.data
-            ?: throw WeatherBitRepositoryException("Not able to retrieve weather forecast, no data found")
-        return WeatherForecastsEntity(
-            data = weatherForecastData.map {
-                WeatherForecastEntity(
-                    datetime = LocalDate.parse(it.datetime),
-                    temperature = it.temp?.toDouble(),
-                    pressure = it.pres?.toDouble(),
-                    windSpeed = it.windSpd?.toDouble()
-                )
-            }
+
+        return WeatherRepositoryResult.Success(
+            WeatherForecastsEntity(
+                data = weatherForecast.body!!.data!!.map { forecast ->
+                    WeatherForecastEntity(
+                        datetime = LocalDate.parse(forecast.datetime),
+                        temperature = forecast.temp?.toDouble(),
+                        pressure = forecast.pres?.toDouble(),
+                        windSpeed = forecast.windSpd?.toDouble()
+                    )
+                }
+            )
         )
     }
 }

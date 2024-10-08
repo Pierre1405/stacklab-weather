@@ -2,6 +2,7 @@ package com.stacklabs.weather.controller
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.stacklabs.weather.service.WeatherService
+import com.stacklabs.weather.service.WeatherServiceResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
@@ -25,11 +26,13 @@ class WeatherControllerTest {
     private val objectMapper = jacksonObjectMapper()
 
     @Test
-    fun test_current_weather_valid_city() {
+    fun test_currentWeather_valid_city() {
         val city = "Tokyo"
         val expectedDto = CurrentWeatherDto("Cloudy", 21.0, 14.7, 75)
 
-        Mockito.`when`(weatherService.getCurrentWeather(city)).thenReturn(expectedDto)
+        Mockito.`when`(weatherService.getCurrentWeather(city)).thenReturn(
+            WeatherServiceResult.Success(expectedDto)
+        )
 
         val result = mockMvc.perform(get("/weather/current").param("city", city))
             .andExpect(status().isOk)
@@ -40,12 +43,41 @@ class WeatherControllerTest {
     }
 
     @Test
+    fun test_currentWeather_notFoundCity() {
+        val city = "Tokyo"
+        Mockito.`when`(weatherService.getCurrentWeather(city)).thenReturn(
+            WeatherServiceResult.CityNotFound(city)
+        )
+
+        mockMvc.perform(get("/weather/current").param("city", city))
+            .andExpect(status().isNoContent)
+    }
+
+    @Test
+    fun test_currentWeather_error() {
+        val city = "Tokyo"
+        Mockito.`when`(weatherService.getCurrentWeather(city)).thenReturn(
+            WeatherServiceResult.Error("An error occurs")
+        )
+
+        mockMvc.perform(get("/weather/current").param("city", city))
+            .andExpect(status().isInternalServerError)
+    }
+
+    @Test
     fun test_forecast_valid_city() {
         val city = "Tokyo"
         val expectedDto =
-            WeatherForecastDto(Tendency.INCREASING, Tendency.INCREASING, BigTendency.INCREASING, BeaufortScale.LIGHT_AIR)
+            WeatherForecastDto(
+                Tendency.INCREASING,
+                Tendency.INCREASING,
+                BigTendency.INCREASING,
+                BeaufortScale.LIGHT_AIR
+            )
 
-        Mockito.`when`(weatherService.getWeatherForecast(city)).thenReturn(expectedDto)
+        Mockito.`when`(weatherService.getWeatherForecast(city)).thenReturn(
+            WeatherServiceResult.Success(expectedDto)
+        )
 
         val result = mockMvc.perform(get("/weather/forecast").param("city", city))
             .andExpect(status().isOk)
@@ -53,6 +85,28 @@ class WeatherControllerTest {
 
         val actualDto = objectMapper.readValue(result.response.contentAsString, WeatherForecastDto::class.java)
         assertEquals(expectedDto, actualDto)
+    }
+
+    @Test
+    fun test_weatherForecast_notFoundCity() {
+        val city = "Tokyo"
+        Mockito.`when`(weatherService.getWeatherForecast(city)).thenReturn(
+            WeatherServiceResult.CityNotFound(city)
+        )
+
+        mockMvc.perform(get("/weather/forecast").param("city", city))
+            .andExpect(status().isNoContent)
+    }
+
+    @Test
+    fun test_weatherForecast_weather_error() {
+        val city = "Tokyo"
+        Mockito.`when`(weatherService.getWeatherForecast(city)).thenReturn(
+            WeatherServiceResult.Error("An error occurs")
+        )
+
+        mockMvc.perform(get("/weather/forecast").param("city", city))
+            .andExpect(status().isInternalServerError)
     }
 
     @Test

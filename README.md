@@ -89,3 +89,6 @@ When the city is not found, the weatherbit api forecast daily endpoint return a 
 
 Not easy to do a proper error management
 
+# Axes to improve
+
+- better kotlin null management

@@ -1,11 +1,9 @@
 package com.stacklabs.weather.service
 
 import com.stacklabs.weather.entity.WeatherForecastEntity
-import com.stacklabs.weather.repository.CityNotFoundWeatherBitRepositoryException
-import com.stacklabs.weather.repository.WeatherBitRepositoryException
 import com.stacklabs.weather.repository.WeatherRepository
+import com.stacklabs.weather.repository.WeatherRepositoryResult
 import com.stacklabs.weather.service.evaluation.ForecastEvaluation
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -19,50 +17,47 @@ class WeatherbitWeatherService @Autowired constructor(
     private val pressureBigFallDelta: Double
 ) : WeatherService {
 
-    val logger = LoggerFactory.getLogger(WeatherbitWeatherService::class.java)
-
-    override fun getCurrentWeather(city: String): CurrentWeatherDto {
-        val currentWeatherByCity = try {
-            val currentWeatherByCity = repository.getCurrentWeatherByCity(city)
-            currentWeatherByCity
-        } catch (e: WeatherBitRepositoryException) {
-            logger.debug("Repository error", e)
-            when (e) {
-                is CityNotFoundWeatherBitRepositoryException -> throw CityNotWeatherServiceException(city)
-                else -> throw e
-            }
+    override fun getCurrentWeather(city: String): WeatherServiceResult<CurrentWeatherDto> {
+        val currentWeatherByCity = when (val currentWeatherByCityResult = repository.getCurrentWeatherByCity(city)) {
+            is WeatherRepositoryResult.CityNotFound -> return WeatherServiceResult.CityNotFound(city)
+            is WeatherRepositoryResult.Error -> return WeatherServiceResult.Error(
+                currentWeatherByCityResult.message,
+                currentWeatherByCityResult.cause
+            )
+            is WeatherRepositoryResult.Success -> currentWeatherByCityResult.data
         }
-        return CurrentWeatherDto(
-            description = currentWeatherByCity.description,
-            temperature = currentWeatherByCity.temperature,
-            humidity = currentWeatherByCity.humidity,
-            windSpeed = currentWeatherByCity.windSpeed?.let(BeaufortScale::meterSecondToKmPerHour)
+        return WeatherServiceResult.Success(
+            CurrentWeatherDto(
+                description = currentWeatherByCity.description,
+                temperature = currentWeatherByCity.temperature,
+                humidity = currentWeatherByCity.humidity,
+                windSpeed = currentWeatherByCity.windSpeed?.let(BeaufortScale::meterSecondToKmPerHour)
+            )
         )
     }
 
-    private fun throwIfFieldNull(entity: WeatherForecastEntity) {
-        throwIfValueNull(entity.temperature, "temperature")
-        throwIfValueNull(entity.pressure, "pressure")
-        throwIfValueNull(entity.windSpeed, "windSpeed")
-    }
 
-    private fun throwIfValueNull(value: Double?, fieldName: String) =
-        value ?: throw WeatherServiceException("Not able to retrieve weather forecast, a $fieldName is null")
-
-    override fun getWeatherForecast(city: String): WeatherForecastDto {
-        val weatherForecasts = try {
-            repository.getWeatherForecastByCity(city).data
-        } catch (e: WeatherBitRepositoryException) {
-            logger.debug("Repository error", e)
-            when (e) {
-                is CityNotFoundWeatherBitRepositoryException -> throw CityNotWeatherServiceException(city)
-                else -> throw e
+    override fun getWeatherForecast(city: String): WeatherServiceResult<WeatherForecastDto> {
+        val weatherForecasts: List<WeatherForecastEntity> =
+            when (val weatherForecastsResult = repository.getWeatherForecastByCity(city)) {
+                is WeatherRepositoryResult.CityNotFound -> return WeatherServiceResult.CityNotFound(city)
+                is WeatherRepositoryResult.Error -> return WeatherServiceResult.Error(
+                    weatherForecastsResult.message,
+                    weatherForecastsResult.cause
+                )
+                is WeatherRepositoryResult.Success -> weatherForecastsResult.data.data
             }
+
+        val hasNullField = weatherForecasts
+            .filter { it.temperature == null || it.pressure == null || it.windSpeed == null }
+            .isNotEmpty()
+        if (hasNullField) {
+            return WeatherServiceResult.Error(
+                "Not able to calculate weather forecast, a temperature, pressure or windSpeed is null",
+            )
         }
-        weatherForecasts.forEach(::throwIfFieldNull)
 
         val today: WeatherForecastEntity = weatherForecasts.minBy { it.datetime }
-
         val otherDays = weatherForecasts
             // we must remove the reference day in order to avoid error on big tendency
             .filterNot { it == today }
@@ -83,24 +78,27 @@ class WeatherbitWeatherService @Autowired constructor(
             windSpeed = otherDaysSum.windSpeed!! / nbOtherDays
         )
 
-        return WeatherForecastDto(
-            globalTendency = Tendency.get(
-                forecastEvaluation.evaluate(today),
-                forecastEvaluation.evaluate(otherDaysAverage)
-            ),
-            temperatureTendency = Tendency.get(
-                today.temperature!!,
-                otherDaysAverage.temperature!!
-            ),
-            pressureTendency = BigTendency.get(
-                today.pressure!!,
-                otherDaysAverage.pressure!!,
-                // Check big pressure fall on 7 days doesn't really make sense
-                // Normally we should check if the pressure fall during the last 4 hours
-                pressureBigFallDelta
-            ),
-            windAverage = BeaufortScale.getFromMeterPerSeconds(otherDaysAverage.windSpeed!!)
+        return WeatherServiceResult.Success(
+            WeatherForecastDto(
+                globalTendency = Tendency.get(
+                    forecastEvaluation.evaluate(today),
+                    forecastEvaluation.evaluate(otherDaysAverage)
+                ),
+                temperatureTendency = Tendency.get(
+                    today.temperature!!,
+                    otherDaysAverage.temperature!!
+                ),
+                pressureTendency = BigTendency.get(
+                    today.pressure!!,
+                    otherDaysAverage.pressure!!,
+                    // Check big pressure fall on 7 days doesn't really make sense
+                    // Normally we should check if the pressure fall during the last 4 hours
+                    pressureBigFallDelta
+                ),
+                windAverage = BeaufortScale.getFromMeterPerSeconds(otherDaysAverage.windSpeed!!)
+            )
         )
+
     }
 
 
