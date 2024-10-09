@@ -4,13 +4,13 @@ import com.stacklabs.weather.entity.CurrentWeatherEntity
 import com.stacklabs.weather.entity.WeatherForecastEntity
 import com.stacklabs.weather.entity.WeatherForecastsEntity
 import com.stacklabs.weather.repository.WeatherBitRepository
+import com.stacklabs.weather.repository.WeatherRepositoryResult
 import com.stacklabs.weather.service.evaluation.LinearValueEvaluation
 import com.stacklabs.weather.service.evaluation.OptimalValueEvaluation
 import com.stacklabs.weather.service.evaluation.TemperatureAndPressureForecastEvaluation
 import com.stacklabs.weather.service.evaluation.ValueEvaluation.Companion.ValueEvaluationProperties
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -19,6 +19,7 @@ import org.mockito.Mockito.`when`
 import org.stacklabs.weather.dto.*
 import java.time.LocalDate
 import java.util.stream.Stream
+import kotlin.test.junit5.JUnit5Asserter.fail
 
 class WeatherbitWeatherServiceTest {
 
@@ -48,23 +49,87 @@ class WeatherbitWeatherServiceTest {
     @Test
     fun test_getCurrentWeather_validData() {
         `when`(weatherBitRepository.getCurrentWeatherByCity("Tokyo")).thenReturn(
-            CurrentWeatherEntity(
-                description = "Clear sky",
-                temperature = 25.0,
-                humidity = 88,
-                windSpeed = 7.2
+            WeatherRepositoryResult.Success(
+                CurrentWeatherEntity(
+                    description = "Clear sky",
+                    temperature = 25.0,
+                    humidity = 88,
+                    windSpeed = 7.2
+                )
             )
         )
 
-        val result: CurrentWeatherDto = service.getCurrentWeather("Tokyo")
+        when (val result = service.getCurrentWeather("Tokyo")) {
+            is WeatherServiceResult.Success -> {
+                val expected = CurrentWeatherDto(
+                    description = "Clear sky",
+                    temperature = 25.0,
+                    humidity = 88,
+                    windSpeed = 25.92
+                )
+                assertEquals(expected, result.data)
+            }
 
-        val expected = CurrentWeatherDto(
-            description = "Clear sky",
-            temperature = 25.0,
-            humidity = 88,
-            windSpeed = 25.92
+            else -> fail("getCurrentWeather should return a success")
+        }
+    }
+
+    @Test
+    fun test_getCurrentWeather__error() {
+        val city = "Tokyo"
+        `when`(weatherBitRepository.getCurrentWeatherByCity(city)).thenReturn(
+            WeatherRepositoryResult.Error(
+                "An error occurs"
+            )
         )
-        assertEquals(expected, result)
+
+        when (val result = service.getCurrentWeather(city)) {
+            is WeatherServiceResult.Error -> {
+                assertEquals("An error occurs", result.message)
+            }
+
+            else -> fail("getCurrentWeather should return an error")
+        }
+    }
+
+    @Test
+    fun test_getCurrentWeather_cityNotFoundError() {
+        val city = "WrongCity"
+        `when`(weatherBitRepository.getCurrentWeatherByCity(city)).thenReturn(
+            WeatherRepositoryResult.CityNotFound(city)
+        )
+
+        when (val result = service.getCurrentWeather(city)) {
+            is WeatherServiceResult.CityNotFound -> {
+                assertEquals(city, result.city)
+            }
+
+            else -> fail("getCurrentWeather should return a city not found error")
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("weatherForecastScenarios")
+    fun test_getWeatherForecast_scenarios(
+        scenarioDescription: String,
+        weatherForecastData: List<WeatherForecastEntity>,
+        expected: WeatherForecastDto
+    ) {
+        val forecastDay = WeatherForecastsEntity(data = weatherForecastData)
+
+        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(
+            WeatherRepositoryResult.Success(
+                forecastDay
+            )
+        )
+
+        when (val result = service.getWeatherForecast("Tokyo")) {
+            is WeatherServiceResult.Success -> {
+                assertEquals(expected, result.data, scenarioDescription)
+            }
+
+            else -> fail("getWeatherForecast should return a success")
+        }
     }
 
     @Test
@@ -77,24 +142,50 @@ class WeatherbitWeatherServiceTest {
         )
         val forecastDay = WeatherForecastsEntity(data = listOf(forecast1))
 
-        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(forecastDay)
+        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(
+            WeatherRepositoryResult.Success(
+                forecastDay
+            )
+        )
 
-        val exception = assertThrows<WeatherServiceException> {
-            service.getWeatherForecast("Tokyo")
+        when (val result = service.getWeatherForecast("Tokyo")) {
+            is WeatherServiceResult.Error -> {
+                assertEquals(
+                    "Not able to calculate weather forecast, a temperature, pressure or windSpeed is null",
+                    result.message
+                )
+            }
+
+            else -> fail("getWeatherForecast should return an error")
         }
-
-        assertEquals("Not able to retrieve weather forecast, a temperature is null", exception.message)
     }
 
-    @ParameterizedTest()
-    @MethodSource("weatherForecastScenarios")
-    fun test_getWeatherForecast_scenarios(scenarioDescription: String, weatherForecastData: List<WeatherForecastEntity>, expected: WeatherForecastDto) {
-        val forecastDay = WeatherForecastsEntity(data = weatherForecastData)
+    @Test
+    fun test_getWeatherForecast_cityNotFound() {
+        val city = "WrongCity"
+        `when`(weatherBitRepository.getWeatherForecastByCity(city)).thenReturn(WeatherRepositoryResult.CityNotFound(city))
 
-        `when`(weatherBitRepository.getWeatherForecastByCity("Tokyo")).thenReturn(forecastDay)
+        when (val result = service.getWeatherForecast(city)) {
+            is WeatherServiceResult.CityNotFound -> {
+                assertEquals(city, result.city)
+            }
 
-        val result: WeatherForecastDto = service.getWeatherForecast("Tokyo")
-        assertEquals(expected, result, scenarioDescription)
+            else -> fail("getWeatherForecast should return a city not found error")
+        }
+    }
+
+    @Test
+    fun test_getWeatherForecast_error() {
+        val city = "WrongCity"
+        `when`(weatherBitRepository.getWeatherForecastByCity(city)).thenReturn(WeatherRepositoryResult.Error("An error occurs"))
+
+        when (val result = service.getWeatherForecast(city)) {
+            is WeatherServiceResult.Error -> {
+                assertEquals("An error occurs", result.message)
+            }
+
+            else -> fail("getWeatherForecast should return an error")
+        }
     }
 
     companion object {

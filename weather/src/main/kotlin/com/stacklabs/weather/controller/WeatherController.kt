@@ -1,6 +1,7 @@
 package com.stacklabs.weather.controller
 
 import com.stacklabs.weather.service.WeatherService
+import com.stacklabs.weather.service.WeatherServiceResult
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -31,7 +32,11 @@ class WeatherController @Autowired constructor(val weatherService: WeatherServic
         @Parameter(name = "city", description = "City name", example = "Tokyo", required = true)
         city: String
     ): CurrentWeatherDto =
-        weatherService.getCurrentWeather(city)
+        when(val result = weatherService.getCurrentWeather(city)) {
+            is WeatherServiceResult.Success -> result.data
+            is WeatherServiceResult.CityNotFound -> throw CityNotFound(city)
+            is WeatherServiceResult.Error -> throw WeatherControllerException("An error occurred while retrieving current weather", result.cause)
+        }
 
     @Operation(summary = "Get weather forecast")
     @ApiResponses(
@@ -44,5 +49,9 @@ class WeatherController @Autowired constructor(val weatherService: WeatherServic
         @Parameter(name = "city", description = "City name", example = "Tokyo", required = true)
         city: String
     ): WeatherForecastDto =
-        weatherService.getWeatherForecast(city)
+        when(val result = weatherService.getWeatherForecast(city)) {
+            is WeatherServiceResult.Success -> result.data
+            is WeatherServiceResult.CityNotFound -> throw CityNotFound(city)
+            is WeatherServiceResult.Error -> throw WeatherControllerException("An error occurred while retrieving weather forecast", result.cause)
+        }
 }

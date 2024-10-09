@@ -89,3 +89,14 @@ When the city is not found, the weatherbit api forecast daily endpoint return a 
 
 Not easy to do a proper error management
 
+## Low level RestClient cache
+
+I tried to implement a ClientHttpRequestInterceptor to cache the ClientHttpResponse for each request executed by the RestClient.
+Unfortunately when we reuse the ClientHttpResponse an exception is thrown due to the already close response.
+I manage to cache response but unfortunately the response can be used only once.
+
+# Axes to improve
+
+- better kotlin null management
+- git flow versus github flow
+- get external reviews
