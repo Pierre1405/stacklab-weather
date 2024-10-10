@@ -16,7 +16,7 @@ import java.net.URI
 import java.util.*
 
 class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
-    val mockServerUri = URI.create(weatherBitProperties.baseUrl)
+    private val mockServerUri: URI = URI.create(weatherBitProperties.baseUrl)
     private var clientAndServer: ClientAndServer = ClientAndServer.startClientAndServer(mockServerUri.port)
     private var mockServerClient: MockServerClient = MockServerClient(mockServerUri.host, mockServerUri.port)
     private val logger = LoggerFactory.getLogger(MockServerConfig::class.java)
@@ -145,14 +145,17 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
 
         init {
             val properties = Properties()
+            val defaultProperties = Properties()
 
             // the startServer will be called in a static @BeforeAll annotated function
             // the spring context won't be loaded, we have to properties in the old style
             properties.load(MockServerTest.Companion::class.java.classLoader.getResourceAsStream("application-$PROFILE_NAME.properties"))
+            defaultProperties.load(MockServerTest.Companion::class.java.classLoader.getResourceAsStream("application.properties"))
             weatherBitProperties = WeatherBitProperties(
-                apiKey = properties.get("external.weatherbit.api-key") as String,
-                baseUrl = properties.get("external.weatherbit.base-url") as String,
-                forecastNbDays = (properties.get("external.weatherbit.forecast-nb-days") as String).toInt()
+                apiKey = properties["external.weatherbit.api-key"] as String,
+                baseUrl = properties["external.weatherbit.base-url"] as String,
+                forecastNbDays = (defaultProperties["external.weatherbit.forecast-nb-days"] as String).toInt(),
+                currentWeatherRefreshCacheDurationInMinutes = (defaultProperties["external.weatherbit.current-weather-refresh-cache-duration-in-minutes"] as String).toInt()
             )
         }
 
