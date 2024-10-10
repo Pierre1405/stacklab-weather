@@ -18,8 +18,8 @@ class CallHttpQueryWithCache<I, O>(
     private val callables: HttpApiCallables<I, O>
 ) {
 
-    fun call(cacheKey: String): O =
-        when (
+    fun call(cacheKey: String): O {
+        val toto = when (
             val cacheResult = cache.get(cacheKey) {
                 try {
                     Result.Success(callables.executeRequest(cacheKey))
@@ -31,5 +31,7 @@ class CallHttpQueryWithCache<I, O>(
             is Result.RestClientError -> callables.onHttpError(cacheKey, cacheResult.error)
             is Result.Success -> callables.onSuccess(cacheKey, cacheResult.result)
         }
+        return toto
+    }
 
 }

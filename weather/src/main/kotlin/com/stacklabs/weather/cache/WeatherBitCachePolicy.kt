@@ -4,6 +4,10 @@ import com.github.benmanes.caffeine.cache.Expiry
 import com.stacklabs.weather.cache.Result.RestClientError
 import com.stacklabs.weather.cache.Result.Success
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 
 private const val WEATHER_BIT_EXPIRE_HEADER_NAME = "X-RateLimit-Reset"
@@ -12,7 +16,9 @@ private const val WEATHER_BIT_EXPIRE_HEADER_NAME = "X-RateLimit-Reset"
  * WeatherBitCachePolicy class implementing Expiry interface for cache expiration control.
  * Calculates the expiration duration based on the rate limit reset timestamp and the current time.
  */
-class WeatherBitCachePolicy<T> : Expiry<String, Result<T>> {
+class WeatherBitCachePolicy<T>(
+    private val maxCacheLifeDuration: Duration = 1.toDuration(DurationUnit.DAYS)
+) : Expiry<String, Result<T>> {
 
     private fun getExpiringCacheDuration(rateLimitResetTimeStamp: Long): Long =
         TimeUnit.MILLISECONDS.toNanos(TimeUnit.SECONDS.toMillis(rateLimitResetTimeStamp) - System.currentTimeMillis())
@@ -29,7 +35,7 @@ class WeatherBitCachePolicy<T> : Expiry<String, Result<T>> {
         }
         val rateLimitResetTimeStamp = httpHeaders?.getFirst(WEATHER_BIT_EXPIRE_HEADER_NAME)?.toLong()
         return if (rateLimitResetTimeStamp != null) {
-            getExpiringCacheDuration(rateLimitResetTimeStamp)
+            min(getExpiringCacheDuration(rateLimitResetTimeStamp), maxCacheLifeDuration.inWholeNanoseconds)
         } else {
             0
         }

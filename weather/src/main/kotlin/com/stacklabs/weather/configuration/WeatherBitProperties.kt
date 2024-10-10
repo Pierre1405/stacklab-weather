@@ -7,5 +7,6 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding
 data class WeatherBitProperties @ConstructorBinding constructor(
     val baseUrl: String,
     val apiKey: String,
-    val forecastNbDays: Int
+    val forecastNbDays: Int,
+    val currentWeatherRefreshCacheDurationInMinutes: Int
 )
