@@ -39,7 +39,7 @@ class MockServerTest(
 
     @Test
     fun test_current_weather_success() {
-        val city = "Tokyo"
+        val city = "Tokyo-success"
         getServerConfig().registerCurrentSuccess(city)
         val response = callCurrentApi(city)
 
@@ -57,11 +57,9 @@ class MockServerTest(
     @Test
     fun test_current_weather_key_failure() {
         assertFailure(
-            city = "Tokyo",
             registerRequest = getServerConfig()::registerCurrentKeyFailure,
             apiCall = ::callCurrentApi,
-            verifyRequest = getServerConfig()::verifyCurrentRequest,
-            expectedStatus = HttpStatus.INTERNAL_SERVER_ERROR
+            verifyRequest = getServerConfig()::verifyCurrentRequest
         )
     }
 
@@ -76,7 +74,7 @@ class MockServerTest(
 
     @Test
     fun test_weather_forecast_success() {
-        val city = "Tokyo"
+        val city = "Tokyo-success"
         getServerConfig().registerForecastSuccess(city)
         val response = restClient.get()
             .uri(FORECAST.format(city))
@@ -97,11 +95,9 @@ class MockServerTest(
     @Test
     fun test_weather_forecast_key_failure() {
         assertFailure(
-            city = "Tokyo",
             registerRequest = getServerConfig()::registerForecastKeyFailure,
             apiCall = ::callForecastApi,
-            verifyRequest = getServerConfig()::verifyForecastRequest,
-            expectedStatus = HttpStatus.INTERNAL_SERVER_ERROR
+            verifyRequest = getServerConfig()::verifyForecastRequest
         )
     }
 
@@ -127,11 +123,10 @@ class MockServerTest(
             .toEntity(WeatherForecastDto::class.java)
 
     private fun assertFailure(
-        city: String,
+        city: String = "FailureCity",
         registerRequest: (String) -> Unit,
         apiCall: (String) -> Unit,
-        verifyRequest: (String) -> Unit,
-        expectedStatus: HttpStatus
+        verifyRequest: (String) -> Unit
     ) {
         registerRequest(city)
         val exception = assertThrows(
@@ -140,7 +135,7 @@ class MockServerTest(
             apiCall(city)
         }
         verifyRequest(city)
-        assertEquals(expectedStatus, exception.statusCode)
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.statusCode)
     }
 
     companion object {
