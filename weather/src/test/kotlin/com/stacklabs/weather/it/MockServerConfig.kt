@@ -5,14 +5,12 @@ import com.stacklabs.weather.configuration.WeatherBitProperties
 import org.mockserver.client.MockServerClient
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.Times
-import org.mockserver.model.ClearType
+import org.mockserver.model.*
 import org.mockserver.model.HttpRequest.request
-import org.mockserver.model.HttpResponse
-import org.mockserver.model.MediaType
-import org.mockserver.model.Parameter
 import org.mockserver.verify.VerificationTimes
 import org.slf4j.LoggerFactory
 import java.net.URI
+import java.time.Instant
 import java.util.*
 
 class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
@@ -27,7 +25,6 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
             listOf(Parameter("city", city)),
             HttpResponse.response()
                 .withStatusCode(200)
-                .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(SampleReader().readSampleAsString("api-samples/current-tokyo.json"))
         )
 
@@ -39,7 +36,6 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
             listOf(Parameter("city", city)),
             HttpResponse.response()
                 .withStatusCode(403)
-                .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(SampleReader().readSampleAsString("api-samples/current-key_failure.json"))
         )
     }
@@ -50,7 +46,6 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
             listOf(Parameter("city", city)),
             HttpResponse.response()
                 .withStatusCode(400)
-                .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(SampleReader().readSampleAsString("api-samples/current-city_failure.json"))
         )
     }
@@ -73,7 +68,6 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
             listOf(Parameter("city", city), Parameter("days", weatherBitProperties.forecastNbDays.toString())),
             HttpResponse.response()
                 .withStatusCode(200)
-                .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(SampleReader().readSampleAsString("api-samples/forecast-tokyo.json"))
         )
     }
@@ -84,7 +78,6 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
             listOf(Parameter("city", city), Parameter("days", weatherBitProperties.forecastNbDays.toString())),
             HttpResponse.response()
                 .withStatusCode(403)
-                .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(SampleReader().readSampleAsString("api-samples/forecast-key_failure.json"))
         )
     }
@@ -117,6 +110,7 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
     }
 
     private fun registerRequest(path: String, queryParameters: List<Parameter>, response: HttpResponse) {
+        val tenMinutesLater = Instant.now().plusSeconds(60).epochSecond
         clientAndServer
             .`when`(
                 request()
@@ -127,6 +121,8 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
                 Times.exactly(1)
             ).respond(
                 response
+                    .withContentType(MediaType.APPLICATION_JSON)
+                    .withHeader(Header("X-RateLimit-Reset", tenMinutesLater.toString()))
             )
     }
 
