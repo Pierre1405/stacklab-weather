@@ -30,8 +30,7 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test:3.3.4")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:2.0.20")
-    testImplementation("org.mock-server:mockserver-netty:5.13.0")
-    testImplementation("org.mock-server:mockserver-client-java:5.13.0")
+    testImplementation(project(":weatherbit-mock"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.2")
 }
 
