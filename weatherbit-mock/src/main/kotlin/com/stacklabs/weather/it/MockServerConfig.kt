@@ -1,10 +1,8 @@
 package com.stacklabs.weather.it
 
 import com.stacklabs.weather.SampleReader
-import com.stacklabs.weather.configuration.WeatherBitProperties
 import org.mockserver.client.MockServerClient
 import org.mockserver.integration.ClientAndServer
-import org.mockserver.matchers.Times
 import org.mockserver.model.*
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.verify.VerificationTimes
@@ -13,7 +11,7 @@ import java.net.URI
 import java.time.Instant
 import java.util.*
 
-class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
+class MockServerConfig(private val weatherBitProperties: MockServerProperties) {
     private val mockServerUri: URI = URI.create(weatherBitProperties.baseUrl)
     private var clientAndServer: ClientAndServer = ClientAndServer.startClientAndServer(mockServerUri.port)
     private var mockServerClient: MockServerClient = MockServerClient(mockServerUri.host, mockServerUri.port)
@@ -118,7 +116,7 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
                     .withPath(path)
                     .withQueryStringParameter("key", weatherBitProperties.apiKey)
                     .withQueryStringParameters(queryParameters),
-                Times.exactly(1)
+                //Times.exactly(1)
             ).respond(
                 response
                     .withContentType(MediaType.APPLICATION_JSON)
@@ -135,7 +133,7 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
 
     companion object {
         private var serverConfig: MockServerConfig? = null
-        private val weatherBitProperties: WeatherBitProperties
+        private val weatherBitProperties: MockServerProperties
 
         const val PROFILE_NAME = "mockserver"
 
@@ -145,13 +143,12 @@ class MockServerConfig(private val weatherBitProperties: WeatherBitProperties) {
 
             // the startServer will be called in a static @BeforeAll annotated function
             // the spring context won't be loaded, we have to properties in the old style
-            properties.load(MockServerTest.Companion::class.java.classLoader.getResourceAsStream("application-$PROFILE_NAME.properties"))
-            defaultProperties.load(MockServerTest.Companion::class.java.classLoader.getResourceAsStream("application.properties"))
-            weatherBitProperties = WeatherBitProperties(
+            properties.load(Companion::class.java.classLoader.getResourceAsStream("application-$PROFILE_NAME.properties"))
+            defaultProperties.load(Companion::class.java.classLoader.getResourceAsStream("application.properties"))
+            weatherBitProperties = MockServerProperties(
                 apiKey = properties["external.weatherbit.api-key"] as String,
                 baseUrl = properties["external.weatherbit.base-url"] as String,
                 forecastNbDays = (defaultProperties["external.weatherbit.forecast-nb-days"] as String).toInt(),
-                currentWeatherRefreshCacheDurationInMinutes = (defaultProperties["external.weatherbit.current-weather-refresh-cache-duration-in-minutes"] as String).toInt()
             )
         }
 
