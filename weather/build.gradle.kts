@@ -24,6 +24,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.20")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation("redis.clients:jedis:5.2.0")
 
     implementation(project(":dto"))
     implementation(project(":weatherbit-client"))
